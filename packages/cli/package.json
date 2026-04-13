@@ -1,6 +1,7 @@
 {
   "name": "@qr-cli/cli",
   "version": "1.0.1",
+  "license": "MIT",
   "description": "CLI wrapper for QR console rendering",
   "type": "module",
   "main": "dist/index.js",
