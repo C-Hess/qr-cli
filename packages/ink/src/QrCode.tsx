@@ -2,35 +2,36 @@ import React from "react";
 import { Text, type TextProps } from "ink";
 import {
   renderQrFullBlockModel,
-  renderQrModel,
-  resolveQrColorStyle,
-  type RenderQrOptions
-} from "@qrcl/core";
+  renderQrHalfBlockModel,
+  resolveQrTerminalColorStyle,
+  type QrRenderOptions
+} from "@qrcl/renderer";
 
 type InkColor = NonNullable<TextProps["color"]>;
 
 export interface QrCodeProps {
-  value: string;
-  options?: RenderQrOptions;
-  darkColor?: InkColor;
-  lightColor?: InkColor;
+  content: string;
+  renderOptions?: QrRenderOptions;
+  darkModuleColor?: InkColor;
+  lightModuleColor?: InkColor;
 }
 
 export function QrCode({
-  value,
-  options,
-  darkColor,
-  lightColor
+  content,
+  renderOptions,
+  darkModuleColor,
+  lightModuleColor
 }: QrCodeProps): React.JSX.Element {
-  if (!value.trim()) {
+  if (!content.trim()) {
     return <Text color="red">QR value is required.</Text>;
   }
 
-  if (options?.outputMode === "fullblocks") {
-    const model = renderQrFullBlockModel(value, options);
-    const colorStyle = resolveQrColorStyle(options?.colorScheme ?? "none");
-    const resolvedLightColor = lightColor ?? colorStyle.background;
-    const resolvedDarkColor = darkColor ?? colorStyle.foreground ?? (resolvedLightColor ? "black" : undefined);
+  if (renderOptions?.outputMode === "fullblocks") {
+    const model = renderQrFullBlockModel(content, renderOptions);
+    const colorStyle = resolveQrTerminalColorStyle(renderOptions?.colorScheme ?? "none");
+    const resolvedLightColor = lightModuleColor ?? colorStyle.background;
+    const resolvedDarkColor =
+      darkModuleColor ?? colorStyle.foreground ?? (resolvedLightColor ? "black" : undefined);
 
     if (!resolvedLightColor && !resolvedDarkColor) {
       return <Text>{model.rows.map((row) => row.raw).join("\n")}</Text>;
@@ -39,7 +40,7 @@ export function QrCode({
     return (
       <>
         {model.rows.map((row, index) => {
-          if (!row.isContentRow) {
+          if (!row.isDataRow) {
             return <Text key={`line-${index}`}>{row.cells.map((cell) => (cell.dark ? "██" : "  ")).join("")}</Text>;
           }
 
@@ -48,11 +49,11 @@ export function QrCode({
             .map((cell) => (cell.dark ? "██" : "  "))
             .join("");
           const middle = row.cells
-            .slice(model.margin, model.margin + model.size)
+            .slice(model.margin, model.margin + model.moduleCount)
             .map((cell) => (cell.dark ? "██" : "  "))
             .join("");
           const right = row.cells
-            .slice(model.margin + model.size)
+            .slice(model.margin + model.moduleCount)
             .map((cell) => (cell.dark ? "██" : "  "))
             .join("");
 
@@ -70,10 +71,11 @@ export function QrCode({
     );
   }
 
-  const model = renderQrModel(value, options);
-  const colorStyle = resolveQrColorStyle(options?.colorScheme ?? "none");
-  const resolvedLightColor = lightColor ?? colorStyle.background;
-  const resolvedDarkColor = darkColor ?? colorStyle.foreground ?? (resolvedLightColor ? "black" : undefined);
+  const model = renderQrHalfBlockModel(content, renderOptions);
+  const colorStyle = resolveQrTerminalColorStyle(renderOptions?.colorScheme ?? "none");
+  const resolvedLightColor = lightModuleColor ?? colorStyle.background;
+  const resolvedDarkColor =
+    darkModuleColor ?? colorStyle.foreground ?? (resolvedLightColor ? "black" : undefined);
 
   if (!resolvedLightColor && !resolvedDarkColor) {
     return <Text>{model.rows.map((row) => row.raw).join("\n")}</Text>;
@@ -82,7 +84,7 @@ export function QrCode({
   return (
     <>
       {model.rows.map((row, index) => {
-        if (!row.touchesContent) {
+        if (!row.intersectsContentArea) {
           return <Text key={`line-${index}`}>{row.raw}</Text>;
         }
 
@@ -91,22 +93,22 @@ export function QrCode({
           .map((cell) => cell.char)
           .join("");
         const middle = row.cells
-          .slice(model.margin, model.margin + model.size)
+          .slice(model.margin, model.margin + model.moduleCount)
           .map((cell) => cell.char)
           .join("");
         const right = row.cells
-          .slice(model.margin + model.size)
+          .slice(model.margin + model.moduleCount)
           .map((cell) => cell.char)
           .join("");
 
-        if (row.isUpperBoundaryRow || row.isLowerBoundaryRow) {
+        if (row.isUpperQuietZoneBoundaryRow || row.isLowerQuietZoneBoundaryRow) {
           return (
             <Text key={`line-${index}`}>
               {left}
               {row.cells
-                .filter((cell) => cell.isContentColumn)
+                .filter((cell) => cell.isDataColumn)
                 .map((cell, charIndex) => {
-                  if (row.isUpperBoundaryRow) {
+                  if (row.isUpperQuietZoneBoundaryRow) {
                     const dark = cell.bottomDark;
                     return (
                       <Text key={`c-${index}-${charIndex}`} color={dark ? resolvedDarkColor : resolvedLightColor}>
@@ -132,7 +134,7 @@ export function QrCode({
             {left}
             <Text
               color={resolvedDarkColor}
-              backgroundColor={row.isFullyInsideContent ? resolvedLightColor : undefined}
+              backgroundColor={row.isFullyInsideContentArea ? resolvedLightColor : undefined}
             >
               {middle}
             </Text>

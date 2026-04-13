@@ -5,8 +5,8 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@qrcl/core": [
-        "../core/src/index.ts"
+      "@qrcl/renderer": [
+        "../renderer/src/index.ts"
       ]
     }
   },

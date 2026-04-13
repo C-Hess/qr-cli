@@ -1,5 +1,5 @@
 {
-  "name": "@qrcl/core",
+  "name": "@qrcl/renderer",
   "version": "0.1.0",
   "description": "Core QR renderer for console output",
   "type": "module",

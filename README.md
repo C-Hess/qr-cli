@@ -4,9 +4,9 @@ TypeScript npm workspace for console QR rendering.
 
 ## Packages
 
-- `@qrcl/core`: core renderer API with a model-first QR render pipeline.
-- `@qrcl/cli`: command-line wrapper for writing core output to stdout.
-- `@qrcl/ink-react`: React Ink wrapper around the core renderer.
+- `@qrcl/renderer`: core renderer API with a model-first QR render pipeline.
+- `@qrcl/cli`: command-line wrapper for writing renderer output to stdout.
+- `@qrcl/ink`: React Ink wrapper around the renderer.
 
 ## Quick start
 
@@ -27,11 +27,11 @@ npx qrcl "https://example.com"
 
 - `--margin <n>`
 - `--invert`
-- `--ec <L|M|Q|H>`
+- `--error-correction <L|M|Q|H>` (alias: `--ec`)
 - `--qr-version <n|auto>`
-- `--mode <numeric|alphanumeric|byte|kanji>`
-- `--color <none|high-contrast>`
-- `--output <halfblocks|fullblocks>`
+- `--encoding <numeric|alphanumeric|byte|kanji>` (alias: `--mode`)
+- `--color-scheme <none|high-contrast>` (alias: `--color`)
+- `--output-mode <halfblocks|fullblocks>` (alias: `--output`)
 - `--no-newline`
 - `--help`
 - `--version`
@@ -41,10 +41,10 @@ CLI input can come from a positional argument or stdin.
 ## Notes
 
 Core rendering supports UTF-8 halfblocks (compact) and fullblocks (taller).
-Use `--color high-contrast` for black-on-white rendering in terminals.
+Use `--color-scheme high-contrast` for black-on-white rendering in terminals.
 
 ## Core API
 
-`@qrcl/core` exposes a model-first API via `renderQrModel(value, options)`.
+`@qrcl/renderer` exposes a model-first API via `renderQrHalfBlockModel(content, options)`.
 Adapters like CLI and Ink can render from this shared model to apply
 platform-specific ergonomics without duplicating QR parsing logic.

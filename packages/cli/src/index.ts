@@ -1,11 +1,11 @@
 import {
-  renderQrToAnsiString,
+  renderQrAnsi,
   type ColorScheme,
   type EncodingMode,
   type ErrorCorrectionLevel,
   type OutputMode,
-  type RenderQrOptions
-} from "@qrcl/core";
+  type QrRenderOptions
+} from "@qrcl/renderer";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,7 +25,7 @@ export interface CliRunOptions {
 
 interface ParsedArgs {
   input: string;
-  renderOptions: RenderQrOptions;
+  renderOptions: QrRenderOptions;
   noNewline: boolean;
   showHelp: boolean;
   showVersion: boolean;
@@ -71,11 +71,16 @@ function usage(): string {
     "Options:",
     "  --margin <n>           Quiet-zone width in modules (default: 2)",
     "  --invert               Invert light/dark modules",
-    "  --ec <L|M|Q|H>         Error correction level (default: M)",
+    "  --error-correction <L|M|Q|H>",
+    "                         Error correction level (default: M)",
+    "                         Alias: --ec",
     "  --qr-version <n|auto>  QR version (0/auto means automatic)",
-    "  --mode <mode>          Encoding mode: numeric|alphanumeric|byte|kanji",
-    "  --color <mode>         Color mode: none|high-contrast",
-    "  --output <mode>        Output mode: halfblocks|fullblocks",
+    "  --encoding <mode>      Encoding mode: numeric|alphanumeric|byte|kanji",
+    "                         Alias: --mode",
+    "  --color-scheme <mode>  Color mode: none|high-contrast",
+    "                         Alias: --color",
+    "  --output-mode <mode>   Output mode: halfblocks|fullblocks",
+    "                         Alias: --output",
     "  --no-newline           Do not print trailing newline",
     "  --help                 Show help",
     "  --version              Show CLI version",
@@ -85,7 +90,7 @@ function usage(): string {
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
-  const renderOptions: RenderQrOptions = {};
+  const renderOptions: QrRenderOptions = {};
   const textParts: string[] = [];
   let noNewline = false;
   let showHelp = false;
@@ -128,9 +133,9 @@ function parseArgs(argv: string[]): ParsedArgs {
       continue;
     }
 
-    if (arg === "--ec") {
+    if (arg === "--error-correction" || arg === "--ec") {
       if (!nextArg) {
-        throw new Error("Missing value for --ec.");
+        throw new Error("Missing value for --error-correction.");
       }
       i += 1;
       const level = nextArg.toUpperCase() as ErrorCorrectionLevel;
@@ -155,9 +160,9 @@ function parseArgs(argv: string[]): ParsedArgs {
       continue;
     }
 
-    if (arg === "--mode") {
+    if (arg === "--encoding" || arg === "--mode") {
       if (!nextArg) {
-        throw new Error("Missing value for --mode.");
+        throw new Error("Missing value for --encoding.");
       }
       i += 1;
       const normalized = nextArg.toLowerCase();
@@ -172,9 +177,9 @@ function parseArgs(argv: string[]): ParsedArgs {
       continue;
     }
 
-    if (arg === "--color") {
+    if (arg === "--color-scheme" || arg === "--color") {
       if (!nextArg) {
-        throw new Error("Missing value for --color.");
+        throw new Error("Missing value for --color-scheme.");
       }
       i += 1;
       const color = nextArg.toLowerCase() as ColorScheme;
@@ -182,9 +187,9 @@ function parseArgs(argv: string[]): ParsedArgs {
       continue;
     }
 
-    if (arg === "--output") {
+    if (arg === "--output-mode" || arg === "--output") {
       if (!nextArg) {
-        throw new Error("Missing value for --output.");
+        throw new Error("Missing value for --output-mode.");
       }
       i += 1;
       const mode = nextArg.toLowerCase();
@@ -258,7 +263,7 @@ export async function runQrCli(argv: string[], options: CliRunOptions = {}): Pro
   }
 
   try {
-    const coloredOutput = renderQrToAnsiString(input, parsed.renderOptions);
+    const coloredOutput = renderQrAnsi(input, parsed.renderOptions);
     if (parsed.noNewline) {
       writeOut(stdout, coloredOutput);
     } else {

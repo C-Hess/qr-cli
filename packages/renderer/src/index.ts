@@ -5,14 +5,14 @@ export type EncodingMode = "Numeric" | "Alphanumeric" | "Byte" | "Kanji";
 export type ColorScheme = "none" | "high-contrast";
 export type OutputMode = "halfblocks" | "fullblocks";
 
-export interface QrColorStyle {
+export interface QrTerminalColorStyle {
   foreground?: "black";
   background?: "white";
   ansiOpen: string;
   ansiClose: string;
 }
 
-export interface RenderQrOptions {
+export interface QrRenderOptions {
   invert?: boolean;
   margin?: number;
   errorCorrectionLevel?: ErrorCorrectionLevel;
@@ -22,7 +22,7 @@ export interface RenderQrOptions {
   outputMode?: OutputMode;
 }
 
-export interface NormalizedRenderQrOptions {
+export interface NormalizedQrRenderOptions {
   invert: boolean;
   margin: number;
   errorCorrectionLevel: ErrorCorrectionLevel;
@@ -36,7 +36,7 @@ export interface QrHalfBlockCell {
   char: " " | "▀" | "▄" | "█";
   topDark: boolean;
   bottomDark: boolean;
-  isContentColumn: boolean;
+  isDataColumn: boolean;
 }
 
 export interface QrHalfBlockRow {
@@ -44,16 +44,16 @@ export interface QrHalfBlockRow {
   cells: QrHalfBlockCell[];
   topY: number;
   bottomY: number;
-  touchesContent: boolean;
-  isFullyInsideContent: boolean;
-  isUpperBoundaryRow: boolean;
-  isLowerBoundaryRow: boolean;
+  intersectsContentArea: boolean;
+  isFullyInsideContentArea: boolean;
+  isUpperQuietZoneBoundaryRow: boolean;
+  isLowerQuietZoneBoundaryRow: boolean;
 }
 
 export interface QrHalfBlockRenderModel {
   margin: number;
-  size: number;
-  width: number;
+  moduleCount: number;
+  totalModuleWidth: number;
   colorScheme: ColorScheme;
   rows: QrHalfBlockRow[];
 }
@@ -61,25 +61,25 @@ export interface QrHalfBlockRenderModel {
 export interface QrFullBlockCell {
   char: " " | "█";
   dark: boolean;
-  isContentColumn: boolean;
+  isDataColumn: boolean;
 }
 
 export interface QrFullBlockRow {
   raw: string;
   cells: QrFullBlockCell[];
   y: number;
-  isContentRow: boolean;
+  isDataRow: boolean;
 }
 
 export interface QrFullBlockRenderModel {
   margin: number;
-  size: number;
-  width: number;
+  moduleCount: number;
+  totalModuleWidth: number;
   colorScheme: ColorScheme;
   rows: QrFullBlockRow[];
 }
 
-export function resolveQrColorStyle(colorScheme: ColorScheme = "none"): QrColorStyle {
+export function resolveQrTerminalColorStyle(colorScheme: ColorScheme = "none"): QrTerminalColorStyle {
   if (colorScheme === "high-contrast") {
     return {
       foreground: "black",
@@ -101,13 +101,13 @@ const VALID_OUTPUT_MODES: OutputMode[] = ["halfblocks", "fullblocks"];
 
 interface QrModuleGrid {
   margin: number;
-  size: number;
-  width: number;
+  moduleCount: number;
+  totalModuleWidth: number;
   colorScheme: ColorScheme;
   isDarkAt: (y: number, x: number) => boolean;
 }
 
-export function normalizeRenderQrOptions(options: RenderQrOptions = {}): NormalizedRenderQrOptions {
+export function normalizeRenderQrOptions(options: QrRenderOptions = {}): NormalizedQrRenderOptions {
   const margin = options.margin ?? 2;
   if (!Number.isInteger(margin) || margin < 0) {
     throw new Error("margin must be a non-negative integer.");
@@ -149,8 +149,8 @@ export function normalizeRenderQrOptions(options: RenderQrOptions = {}): Normali
   };
 }
 
-function createQrModuleGrid(value: string, options: RenderQrOptions = {}): QrModuleGrid {
-  if (!value.trim()) {
+function createQrModuleGrid(content: string, options: QrRenderOptions = {}): QrModuleGrid {
+  if (!content.trim()) {
     throw new Error("A non-empty value is required.");
   }
 
@@ -159,16 +159,16 @@ function createQrModuleGrid(value: string, options: RenderQrOptions = {}): QrMod
     normalized.qrVersion as Parameters<typeof qrcode>[0],
     normalized.errorCorrectionLevel
   );
-  qr.addData(value, normalized.encodingMode);
+  qr.addData(content, normalized.encodingMode);
   qr.make();
 
-  const size = qr.getModuleCount();
-  const width = size + normalized.margin * 2;
+  const moduleCount = qr.getModuleCount();
+  const totalModuleWidth = moduleCount + normalized.margin * 2;
 
   const isDarkAt = (y: number, x: number): boolean => {
     const srcX = x - normalized.margin;
     const srcY = y - normalized.margin;
-    const inside = srcY >= 0 && srcY < size && srcX >= 0 && srcX < size;
+    const inside = srcY >= 0 && srcY < moduleCount && srcX >= 0 && srcX < moduleCount;
     if (!inside) {
       return normalized.invert;
     }
@@ -179,8 +179,8 @@ function createQrModuleGrid(value: string, options: RenderQrOptions = {}): QrMod
 
   return {
     margin: normalized.margin,
-    size,
-    width,
+    moduleCount,
+    totalModuleWidth,
     colorScheme: normalized.colorScheme,
     isDarkAt
   };
@@ -199,30 +199,31 @@ function toHalfBlock(topDark: boolean, bottomDark: boolean): " " | "▀" | "▄"
   return " ";
 }
 
-export function renderQrModel(value: string, options: RenderQrOptions = {}): QrHalfBlockRenderModel {
-  const grid = createQrModuleGrid(value, options);
-  const maxY = grid.margin + grid.size;
+export function renderQrHalfBlockModel(content: string, options: QrRenderOptions = {}): QrHalfBlockRenderModel {
+  const grid = createQrModuleGrid(content, options);
+  const maxDataY = grid.margin + grid.moduleCount;
   const rows: QrHalfBlockRow[] = [];
 
-  for (let y = 0; y < grid.width; y += 2) {
+  for (let y = 0; y < grid.totalModuleWidth; y += 2) {
     const topY = y;
     const bottomY = topY + 1;
-    const touchesContent =
-      (topY >= grid.margin && topY < maxY) ||
-      (bottomY >= grid.margin && bottomY < maxY);
-    const isFullyInsideContent =
+    const intersectsContentArea =
+      (topY >= grid.margin && topY < maxDataY) ||
+      (bottomY >= grid.margin && bottomY < maxDataY);
+    const isFullyInsideContentArea =
       topY >= grid.margin &&
-      topY < maxY &&
+      topY < maxDataY &&
       bottomY >= grid.margin &&
-      bottomY < maxY;
-    const isUpperBoundaryRow =
-      topY < grid.margin && bottomY >= grid.margin && bottomY < maxY;
-    const isLowerBoundaryRow = topY >= grid.margin && topY < maxY && bottomY >= maxY;
+      bottomY < maxDataY;
+    const isUpperQuietZoneBoundaryRow =
+      topY < grid.margin && bottomY >= grid.margin && bottomY < maxDataY;
+    const isLowerQuietZoneBoundaryRow =
+      topY >= grid.margin && topY < maxDataY && bottomY >= maxDataY;
 
     let raw = "";
     const cells: QrHalfBlockCell[] = [];
 
-    for (let x = 0; x < grid.width; x += 1) {
+    for (let x = 0; x < grid.totalModuleWidth; x += 1) {
       const topDark = grid.isDarkAt(topY, x);
       const bottomDark = grid.isDarkAt(bottomY, x);
       const char = toHalfBlock(topDark, bottomDark);
@@ -232,7 +233,7 @@ export function renderQrModel(value: string, options: RenderQrOptions = {}): QrH
         char,
         topDark,
         bottomDark,
-        isContentColumn: x >= grid.margin && x < maxY
+        isDataColumn: x >= grid.margin && x < maxDataY
       });
     }
 
@@ -241,10 +242,10 @@ export function renderQrModel(value: string, options: RenderQrOptions = {}): QrH
       cells,
       topY,
       bottomY,
-      touchesContent,
-      isFullyInsideContent,
-      isUpperBoundaryRow,
-      isLowerBoundaryRow
+      intersectsContentArea,
+      isFullyInsideContentArea,
+      isUpperQuietZoneBoundaryRow,
+      isLowerQuietZoneBoundaryRow
     });
   }
 
@@ -257,31 +258,31 @@ export function renderQrModel(value: string, options: RenderQrOptions = {}): QrH
 
   return {
     margin: grid.margin,
-    size: grid.size,
-    width: grid.width,
+    moduleCount: grid.moduleCount,
+    totalModuleWidth: grid.totalModuleWidth,
     colorScheme: grid.colorScheme,
     rows
   };
 }
 
-export function renderQrFullBlockModel(value: string, options: RenderQrOptions = {}): QrFullBlockRenderModel {
-  const grid = createQrModuleGrid(value, options);
-  const maxY = grid.margin + grid.size;
+export function renderQrFullBlockModel(content: string, options: QrRenderOptions = {}): QrFullBlockRenderModel {
+  const grid = createQrModuleGrid(content, options);
+  const maxDataY = grid.margin + grid.moduleCount;
   const rows: QrFullBlockRow[] = [];
 
-  for (let y = 0; y < grid.width; y += 1) {
-    const isContentRow = y >= grid.margin && y < maxY;
+  for (let y = 0; y < grid.totalModuleWidth; y += 1) {
+    const isDataRow = y >= grid.margin && y < maxDataY;
     let raw = "";
     const cells: QrFullBlockCell[] = [];
 
-    for (let x = 0; x < grid.width; x += 1) {
+    for (let x = 0; x < grid.totalModuleWidth; x += 1) {
       const dark = grid.isDarkAt(y, x);
       const char: " " | "█" = dark ? "█" : " ";
       raw += char;
       cells.push({
         char,
         dark,
-        isContentColumn: x >= grid.margin && x < maxY
+        isDataColumn: x >= grid.margin && x < maxDataY
       });
     }
 
@@ -289,21 +290,21 @@ export function renderQrFullBlockModel(value: string, options: RenderQrOptions =
       raw,
       cells,
       y,
-      isContentRow
+      isDataRow
     });
   }
 
   return {
     margin: grid.margin,
-    size: grid.size,
-    width: grid.width,
+    moduleCount: grid.moduleCount,
+    totalModuleWidth: grid.totalModuleWidth,
     colorScheme: grid.colorScheme,
     rows
   };
 }
 
 function applyAnsiColorToQrContent(model: QrHalfBlockRenderModel, colorScheme: ColorScheme): string {
-  const colorStyle = resolveQrColorStyle(colorScheme);
+  const colorStyle = resolveQrTerminalColorStyle(colorScheme);
   if (!colorStyle.ansiOpen) {
     return model.rows.map((row) => row.raw).join("\n");
   }
@@ -317,7 +318,7 @@ function applyAnsiColorToQrContent(model: QrHalfBlockRenderModel, colorScheme: C
   const ansiFgClose = "\u001b[39m";
   return model.rows
     .map((row) => {
-      if (!row.touchesContent) {
+      if (!row.intersectsContentArea) {
         return row.raw;
       }
 
@@ -328,24 +329,24 @@ function applyAnsiColorToQrContent(model: QrHalfBlockRenderModel, colorScheme: C
           continue;
         }
 
-        if (!cell.isContentColumn) {
+        if (!cell.isDataColumn) {
           coloredLine += cell.char;
           continue;
         }
 
-        if (row.isUpperBoundaryRow) {
+        if (row.isUpperQuietZoneBoundaryRow) {
           const fg = cell.bottomDark ? ansiBlackFgOpen : ansiWhiteFgOpen;
           coloredLine += `${fg}▄${ansiFgClose}`;
           continue;
         }
 
-        if (row.isLowerBoundaryRow) {
+        if (row.isLowerQuietZoneBoundaryRow) {
           const fg = cell.topDark ? ansiBlackFgOpen : ansiWhiteFgOpen;
           coloredLine += `${fg}▀${ansiFgClose}`;
           continue;
         }
 
-        if (row.isFullyInsideContent) {
+        if (row.isFullyInsideContentArea) {
           coloredLine += `${colorStyle.ansiOpen}${cell.char}${colorStyle.ansiClose}`;
           continue;
         }
@@ -358,7 +359,7 @@ function applyAnsiColorToQrContent(model: QrHalfBlockRenderModel, colorScheme: C
 }
 
 function applyAnsiColorToFullBlockContent(model: QrFullBlockRenderModel, colorScheme: ColorScheme): string {
-  const colorStyle = resolveQrColorStyle(colorScheme);
+  const colorStyle = resolveQrTerminalColorStyle(colorScheme);
   if (!colorStyle.ansiOpen) {
     return model.rows
       .map((row) => row.cells.map((cell) => (cell.dark ? "██" : "  ")).join(""))
@@ -367,7 +368,7 @@ function applyAnsiColorToFullBlockContent(model: QrFullBlockRenderModel, colorSc
 
   return model.rows
     .map((row) => {
-      if (!row.isContentRow) {
+      if (!row.isDataRow) {
         return row.raw;
       }
 
@@ -378,7 +379,7 @@ function applyAnsiColorToFullBlockContent(model: QrFullBlockRenderModel, colorSc
           continue;
         }
 
-        if (!cell.isContentColumn) {
+        if (!cell.isDataColumn) {
           coloredLine += cell.dark ? "██" : "  ";
           continue;
         }
@@ -391,32 +392,26 @@ function applyAnsiColorToFullBlockContent(model: QrFullBlockRenderModel, colorSc
     .join("\n");
 }
 
-/**
- * Render a QR code to a terminal-safe string.
- */
-export function renderQrToString(value: string, options: RenderQrOptions = {}): string {
+export function renderQrText(content: string, options: QrRenderOptions = {}): string {
   const normalized = normalizeRenderQrOptions(options);
   if (normalized.outputMode === "fullblocks") {
-    const model = renderQrFullBlockModel(value, normalized);
+    const model = renderQrFullBlockModel(content, normalized);
     return model.rows
       .map((row) => row.cells.map((cell) => (cell.dark ? "██" : "  ")).join(""))
       .join("\n");
   }
 
-  const model = renderQrModel(value, options);
+  const model = renderQrHalfBlockModel(content, options);
   return model.rows.map((row) => row.raw).join("\n");
 }
 
-/**
- * Render a QR code with ANSI styling for terminal adapters.
- */
-export function renderQrToAnsiString(value: string, options: RenderQrOptions = {}): string {
+export function renderQrAnsi(content: string, options: QrRenderOptions = {}): string {
   const normalized = normalizeRenderQrOptions(options);
   if (normalized.outputMode === "fullblocks") {
-    const model = renderQrFullBlockModel(value, normalized);
+    const model = renderQrFullBlockModel(content, normalized);
     return applyAnsiColorToFullBlockContent(model, model.colorScheme);
   }
 
-  const model = renderQrModel(value, options);
+  const model = renderQrHalfBlockModel(content, options);
   return applyAnsiColorToQrContent(model, model.colorScheme);
 }

@@ -89,13 +89,13 @@ describe("runQrCli", () => {
     const exit = await runQrCli([
       "--margin",
       "1",
-      "--ec",
+      "--error-correction",
       "H",
-      "--mode",
+      "--encoding",
       "byte",
-      "--color",
+      "--color-scheme",
       "high-contrast",
-      "--output",
+      "--output-mode",
       "full",
       "hello options"
     ], {

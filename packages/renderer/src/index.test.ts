@@ -1,10 +1,10 @@
 import {
   normalizeRenderQrOptions,
-  renderQrModel,
+  renderQrHalfBlockModel,
   renderQrFullBlockModel,
-  renderQrToString,
-  renderQrToAnsiString,
-  resolveQrColorStyle
+  renderQrText,
+  renderQrAnsi,
+  resolveQrTerminalColorStyle
 } from "./index.js";
 import { describe, expect, it } from "vitest";
 
@@ -36,13 +36,13 @@ describe("normalizeRenderQrOptions", () => {
   });
 });
 
-describe("resolveQrColorStyle", () => {
+describe("resolveQrTerminalColorStyle", () => {
   it("returns no ansi colors for none", () => {
-    expect(resolveQrColorStyle("none")).toEqual({ ansiOpen: "", ansiClose: "" });
+    expect(resolveQrTerminalColorStyle("none")).toEqual({ ansiOpen: "", ansiClose: "" });
   });
 
   it("returns ansi colors for high-contrast", () => {
-    expect(resolveQrColorStyle("high-contrast")).toEqual({
+    expect(resolveQrTerminalColorStyle("high-contrast")).toEqual({
       foreground: "black",
       background: "white",
       ansiOpen: "\u001b[30;47m",
@@ -53,58 +53,58 @@ describe("resolveQrColorStyle", () => {
 
 describe("render models", () => {
   it("builds a halfblock model with valid dimensions", () => {
-    const model = renderQrModel("https://example.com", { margin: 2 });
-    expect(model.size).toBeGreaterThan(0);
-    expect(model.width).toBe(model.size + 4);
+    const model = renderQrHalfBlockModel("https://example.com", { margin: 2 });
+    expect(model.moduleCount).toBeGreaterThan(0);
+    expect(model.totalModuleWidth).toBe(model.moduleCount + 4);
     expect(model.rows.length).toBeGreaterThan(0);
-    expect(model.rows[0]?.cells.length).toBe(model.width);
-    expect(model.rows.some((row) => row.touchesContent)).toBe(true);
+    expect(model.rows[0]?.cells.length).toBe(model.totalModuleWidth);
+    expect(model.rows.some((row) => row.intersectsContentArea)).toBe(true);
   });
 
   it("keeps full row count when margin is zero", () => {
-    const model = renderQrModel("hello", { margin: 0 });
-    expect(model.rows.length).toBe(Math.ceil(model.width / 2));
+    const model = renderQrHalfBlockModel("hello", { margin: 0 });
+    expect(model.rows.length).toBe(Math.ceil(model.totalModuleWidth / 2));
   });
 
   it("builds a fullblock model with valid dimensions", () => {
     const model = renderQrFullBlockModel("hello", { margin: 1 });
-    expect(model.width).toBe(model.size + 2);
-    expect(model.rows.length).toBe(model.width);
-    expect(model.rows[0]?.cells.length).toBe(model.width);
+    expect(model.totalModuleWidth).toBe(model.moduleCount + 2);
+    expect(model.rows.length).toBe(model.totalModuleWidth);
+    expect(model.rows[0]?.cells.length).toBe(model.totalModuleWidth);
   });
 
   it("supports invert rendering", () => {
-    const normal = renderQrToString("invert-check", { margin: 1 });
-    const inverted = renderQrToString("invert-check", { margin: 1, invert: true });
+    const normal = renderQrText("invert-check", { margin: 1 });
+    const inverted = renderQrText("invert-check", { margin: 1, invert: true });
     expect(inverted).not.toEqual(normal);
   });
 
   it("throws on empty values", () => {
-    expect(() => renderQrModel("   ")).toThrow(/non-empty value is required/i);
+    expect(() => renderQrHalfBlockModel("   ")).toThrow(/non-empty value is required/i);
   });
 });
 
 describe("render string outputs", () => {
   it("renders halfblocks by default", () => {
-    const output = renderQrToString("abc123");
+    const output = renderQrText("abc123");
     expect(output).toContain("\n");
     expect(output.length).toBeGreaterThan(20);
   });
 
   it("renders fullblocks in full output mode", () => {
-    const output = renderQrToString("abc123", { outputMode: "fullblocks" });
+    const output = renderQrText("abc123", { outputMode: "fullblocks" });
     expect(output).toContain("██");
     expect(output).toContain("\n");
   });
 
   it("adds ansi sequences in high-contrast mode", () => {
-    const output = renderQrToAnsiString("ansi-check", { colorScheme: "high-contrast" });
+    const output = renderQrAnsi("ansi-check", { colorScheme: "high-contrast" });
     expect(output).toContain("\u001b[30m");
     expect(output).toContain("\u001b[39m");
   });
 
   it("omits ansi sequences when color is none", () => {
-    const output = renderQrToAnsiString("plain", { colorScheme: "none" });
+    const output = renderQrAnsi("plain", { colorScheme: "none" });
     expect(output).not.toContain("\u001b[");
   });
 });

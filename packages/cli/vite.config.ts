@@ -15,7 +15,7 @@ export default defineConfig({
       formats: ["es"]
     },
     rollupOptions: {
-      external: ["@qrcl/core", "node:fs", "node:path", "node:url"],
+      external: ["@qrcl/renderer", "node:fs", "node:path", "node:url"],
       output: {
         entryFileNames: "[name].js",
         banner: (chunk) => (chunk.name === "cli" ? "#!/usr/bin/env node" : "")
