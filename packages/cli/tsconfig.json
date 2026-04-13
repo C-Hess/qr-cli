@@ -3,6 +3,8 @@
   "compilerOptions": {
     "rootDir": "..",
     "outDir": "dist",
+    "declarationMap": false,
+    "sourceMap": false,
     "types": [
       "node"
     ],

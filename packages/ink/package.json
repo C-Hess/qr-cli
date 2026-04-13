@@ -1,6 +1,6 @@
 {
   "name": "@qr-cli/ink",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "React Ink wrapper for QR console rendering",
   "type": "module",
   "main": "dist/index.js",
@@ -23,7 +23,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@qr-cli/renderer": "^1.0.0"
+    "@qr-cli/renderer": "^1.0.1"
   },
   "peerDependencies": {
     "ink": ">=7.0.0",
