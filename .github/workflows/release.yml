@@ -49,18 +49,12 @@ jobs:
 
       - name: Publish @qr-cli/renderer
         run: npm publish -w @qr-cli/renderer --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @qr-cli/ink
         run: npm publish -w @qr-cli/ink --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @qr-cli/cli
         run: npm publish -w @qr-cli/cli --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
