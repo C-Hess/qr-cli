@@ -1,50 +1,143 @@
 # qr-cli
 
-TypeScript npm workspace for console QR rendering.
+Terminal QR codes, but with style.
 
-## Packages
+This repo is a TypeScript workspace with three packages:
 
-- `@qr-cli/renderer`: core renderer API with a model-first QR render pipeline.
-- `@qr-cli/cli`: command-line wrapper for writing renderer output to stdout.
-- `@qr-cli/ink`: React Ink wrapper around the renderer.
+- `@qr-cli/renderer`: core QR rendering (half-block and full-block output)
+- `@qr-cli/cli`: command-line wrapper that prints to stdout
+- `@qr-cli/ink`: Ink/React wrapper for terminal UIs
 
-## Quick start
+## Quick Start (Monorepo)
 
 ```bash
 npm install
-npm test
 npm run build
-npx qr-cli "https://example.com"
+node packages/cli/dist/cli.js "https://github.com/C-Hess/qr-cli"
 ```
 
-## Development checks
+You can also pipe input from stdin:
 
-- `npm test` runs workspace tests with Vitest.
-- `npm run build` builds all packages with Vite library mode.
-- `npm run check` runs typecheck, tests, and builds.
+```bash
+echo "https://github.com/C-Hess/qr-cli" | node packages/cli/dist/cli.js
+```
 
-## CLI options
+## Ink First: Render QR In A React TUI
 
-- `--margin <n>`
-- `--invert`
-- `--error-correction <L|M|Q|H>` (alias: `--ec`)
-- `--qr-version <n|auto>`
-- `--encoding <numeric|alphanumeric|byte|kanji>` (alias: `--mode`)
-- `--color-scheme <none|high-contrast>` (alias: `--color`)
-- `--output-mode <halfblocks|fullblocks>` (alias: `--output`)
-- `--no-newline`
-- `--help`
-- `--version`
+If the Ink component is your main integration point, use `@qr-cli/ink` and drop in `QrCode`.
 
-CLI input can come from a positional argument or stdin.
+```tsx
+import React from "react";
+import { render } from "ink";
+import { QrCode } from "@qr-cli/ink";
 
-## Notes
+function App() {
+  return (
+    <QrCode
+      content="https://github.com/C-Hess/qr-cli"
+      renderOptions={{
+        outputMode: "halfblocks",
+        errorCorrectionLevel: "M",
+        margin: 2
+      }}
+      darkModuleColor="black"
+      lightModuleColor="white"
+    />
+  );
+}
 
-Core rendering supports UTF-8 halfblocks (compact) and fullblocks (taller).
-Use `--color-scheme high-contrast` for black-on-white rendering in terminals.
+render(<App />);
+```
 
-## Core API
+Useful `QrCode` props:
 
-`@qr-cli/renderer` exposes a model-first API via `renderQrHalfBlockModel(content, options)`.
-Adapters like CLI and Ink can render from this shared model to apply
-platform-specific ergonomics without duplicating QR parsing logic.
+- `content` (required): value to encode
+- `renderOptions`: `margin`, `padding`, `errorCorrectionLevel`, `encodingMode`, `qrVersion`, `outputMode`
+- `darkModuleColor`: Ink foreground color for dark modules
+- `lightModuleColor`: Ink background/light module color
+
+For Ink, color styling comes from `darkModuleColor` and `lightModuleColor`.
+
+In this monorepo, build the Ink package with:
+
+```bash
+npm run build:ink
+```
+
+Want a runnable example right now? Use the demo package:
+
+```bash
+npm run demo
+```
+
+Live controls while running:
+
+- `Up` / `Down`: select setting row
+- `Left` / `Right`: change selected setting
+- `Enter` on `content`: edit QR content text
+- `Enter` or `Esc` while editing: exit content editing mode
+- `Backspace`: delete characters while editing
+- `r`: reset content to default URL
+- `q`: quit
+
+The demo can live-toggle `content`, `outputMode`, `margin`, `padding`,
+`errorCorrectionLevel`, `encodingMode`, `qrVersion`, and foreground/background colors.
+
+## Real Sample Output (halfblocks)
+
+Example content:
+
+```text
+https://github.com/C-Hess/qr-cli
+```
+
+Rendered output:
+
+```text
+                                 
+  █▀▀▀▀▀█ █▄█ █  ▀█▀▀▄▄ █▀▀▀▀▀█  
+  █ ███ █ ▀▀ ██  ▀█▄ █▄ █ ███ █  
+  █ ▀▀▀ █ ▀ ▀█  ▀██▀▄ ▄ █ ▀▀▀ █  
+  ▀▀▀▀▀▀▀ ▀▄▀ ▀▄▀▄█ ▀▄▀ ▀▀▀▀▀▀▀  
+  ▀ ▄███▀▀▀▄▄▄ █  ▄▀ ▄▄█ ▄█ ██▀  
+  ▄▀ ▄▀▀▀ ▄  ▀ █ ▀█▄▀▄ ▄▄█▀▄▀ ▄  
+  ██▄▀▀▀▀ ██▀▀▄█▄▀█▄██▀ ██▄▄▄▄█  
+  ▄ ▄ ██▀▄▄▀▀▄▀▀ ▄▀▀ █▀▀▀▄█ █ █  
+  █▀██▀█▀▀▀▀█▀▀▄█ ▄▄ █▀▀  ▄▀▄▄   
+  ██ ▄ ▄▀▀█▀▀▄▄ ▄▀ ▀▀█  ▄ ▀█▄ ▀  
+  ▀▀  ▀ ▀ █▀▄▀█▀█▄▀▀  █▀▀▀██▀▀   
+  █▀▀▀▀▀█ █▀▀ ▀ █▀ ▄███ ▀ █▀  ▄  
+  █ ███ █ █▀█ ██▀▄█▄█▀▀█▀▀▀▀ ▀█  
+  █ ▀▀▀ █  █▄▀▀  █▄   ▀▀▄█▀▄█▀█  
+  ▀▀▀▀▀▀▀ ▀▀▀▀   ▀   ▀▀ ▀ ▀      
+```
+
+## CLI Options
+
+- `--margin <n>`: quiet-zone width in modules (default: `2`)
+- `--padding <n>`: outer padding width in modules (default: `1`)
+- `--error-correction <L|M|Q|H>`: EC level (alias: `--ec`, default: `M`)
+- `--qr-version <n|auto>`: QR version (`0` or `auto` = automatic)
+- `--encoding <numeric|alphanumeric|byte|kanji>`: encoding mode (alias: `--mode`)
+- `--color-scheme <none|high-contrast>`: terminal coloring (alias: `--color`)
+- `--output-mode <halfblocks|fullblocks>`: render style (alias: `--output`)
+- `--no-newline`: omit trailing newline
+- `--help`: usage help
+- `--version`: CLI version
+
+Shorthand accepted for output mode:
+
+- `--output half`
+- `--output full`
+
+## Development
+
+- `npm test`: run workspace tests (Vitest)
+- `npm run build`: build all packages
+- `npm run check`: typecheck + test + build
+
+## API Note
+
+The renderer exposes a model-first API via `renderQrHalfBlockModel(content, options)`
+and `renderQrFullBlockModel(content, options)`, so adapters (CLI, Ink, others)
+can share QR generation logic without duplicating parsing behavior.

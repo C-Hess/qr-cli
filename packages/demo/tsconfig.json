@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "outDir": "dist",
+    "jsx": "react-jsx",
+    "types": ["node"],
+    "paths": {
+      "@qr-cli/ink": [
+        "../ink/src/index.ts"
+      ],
+      "@qr-cli/renderer": [
+        "../renderer/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "src"
+  ]
+}

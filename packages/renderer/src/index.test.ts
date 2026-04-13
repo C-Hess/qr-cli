@@ -11,8 +11,8 @@ import { describe, expect, it } from "vitest";
 describe("normalizeRenderQrOptions", () => {
   it("returns defaults", () => {
     expect(normalizeRenderQrOptions()).toEqual({
-      invert: false,
       margin: 2,
+      padding: 1,
       errorCorrectionLevel: "M",
       qrVersion: 0,
       encodingMode: "Byte",
@@ -23,6 +23,10 @@ describe("normalizeRenderQrOptions", () => {
 
   it("throws on invalid margin", () => {
     expect(() => normalizeRenderQrOptions({ margin: -1 })).toThrow(/margin must be a non-negative integer/i);
+  });
+
+  it("throws on invalid padding", () => {
+    expect(() => normalizeRenderQrOptions({ padding: -1 })).toThrow(/padding must be a non-negative integer/i);
   });
 
   it("throws on invalid error correction level", () => {
@@ -55,7 +59,7 @@ describe("render models", () => {
   it("builds a halfblock model with valid dimensions", () => {
     const model = renderQrHalfBlockModel("https://example.com", { margin: 2 });
     expect(model.moduleCount).toBeGreaterThan(0);
-    expect(model.totalModuleWidth).toBe(model.moduleCount + 4);
+    expect(model.totalModuleWidth).toBe(model.moduleCount + 6);
     expect(model.rows.length).toBeGreaterThan(0);
     expect(model.rows[0]?.cells.length).toBe(model.totalModuleWidth);
     expect(model.rows.some((row) => row.intersectsContentArea)).toBe(true);
@@ -68,15 +72,9 @@ describe("render models", () => {
 
   it("builds a fullblock model with valid dimensions", () => {
     const model = renderQrFullBlockModel("hello", { margin: 1 });
-    expect(model.totalModuleWidth).toBe(model.moduleCount + 2);
+    expect(model.totalModuleWidth).toBe(model.moduleCount + 4);
     expect(model.rows.length).toBe(model.totalModuleWidth);
     expect(model.rows[0]?.cells.length).toBe(model.totalModuleWidth);
-  });
-
-  it("supports invert rendering", () => {
-    const normal = renderQrText("invert-check", { margin: 1 });
-    const inverted = renderQrText("invert-check", { margin: 1, invert: true });
-    expect(inverted).not.toEqual(normal);
   });
 
   it("throws on empty values", () => {

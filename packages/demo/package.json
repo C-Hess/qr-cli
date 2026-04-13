@@ -1,0 +1,25 @@
+{
+  "name": "@qr-cli/demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Runnable Ink demo for qr-cli",
+  "type": "module",
+  "main": "src/index.tsx",
+  "scripts": {
+    "build": "vite build",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "demo": "tsx src/index.tsx",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "ink": "7.0.0",
+    "ink-text-input": "6.0.0",
+    "react": "19.2.5"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.14",
+    "tsx": "4.20.6",
+    "typescript": "6.0.2",
+    "vite": "8.0.8"
+  }
+}

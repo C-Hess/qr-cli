@@ -13,7 +13,7 @@ export default defineConfig({
       fileName: "index"
     },
     rollupOptions: {
-      external: ["qrcode-generator"]
+      external: ["qrcode-generator", "iconv-lite"]
     }
   },
   plugins: [

@@ -70,7 +70,7 @@ function usage(): string {
     "",
     "Options:",
     "  --margin <n>           Quiet-zone width in modules (default: 2)",
-    "  --invert               Invert light/dark modules",
+    "  --padding <n>          Outer padding width in modules (default: 1)",
     "  --error-correction <L|M|Q|H>",
     "                         Error correction level (default: M)",
     "                         Alias: --ec",
@@ -110,10 +110,6 @@ function parseArgs(argv: string[]): ParsedArgs {
       showVersion = true;
       continue;
     }
-    if (arg === "--invert") {
-      renderOptions.invert = true;
-      continue;
-    }
     if (arg === "--no-newline") {
       noNewline = true;
       continue;
@@ -130,6 +126,19 @@ function parseArgs(argv: string[]): ParsedArgs {
         throw new Error("--margin must be an integer.");
       }
       renderOptions.margin = margin;
+      continue;
+    }
+
+    if (arg === "--padding") {
+      if (!nextArg) {
+        throw new Error("Missing value for --padding.");
+      }
+      i += 1;
+      const padding = Number.parseInt(nextArg, 10);
+      if (!Number.isInteger(padding)) {
+        throw new Error("--padding must be an integer.");
+      }
+      renderOptions.padding = padding;
       continue;
     }
 
