@@ -13,7 +13,7 @@ export default defineConfig({
       fileName: "index"
     },
     rollupOptions: {
-      external: ["react", "ink", "@qrcl/renderer"]
+      external: ["react", "ink", "@qr-cli/renderer"]
     }
   },
   plugins: [

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { QrCode } from "./QrCode.js";
 import { renderInk } from "./testHarness.js";
 
-vi.mock("@qrcl/renderer", () => ({
+vi.mock("@qr-cli/renderer", () => ({
   renderQrHalfBlockModel: vi.fn(() => ({
     margin: 1,
     moduleCount: 2,

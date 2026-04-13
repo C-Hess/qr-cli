@@ -5,7 +5,7 @@ import {
   type ErrorCorrectionLevel,
   type OutputMode,
   type QrRenderOptions
-} from "@qrcl/renderer";
+} from "@qr-cli/renderer";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -66,7 +66,7 @@ function writeErr(stderr: NonNullable<CliRunOptions["stderr"]>, message: string)
 
 function usage(): string {
   return [
-    "Usage: qrcl [options] <text-to-encode>",
+    "Usage: qr-cli [options] <text-to-encode>",
     "",
     "Options:",
     "  --margin <n>           Quiet-zone width in modules (default: 2)",
@@ -233,8 +233,8 @@ export async function runQrCli(argv: string[], options: CliRunOptions = {}): Pro
     parsed = parseArgs(argv);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    writeErr(stderr, `qrcl: ${message}\n`);
-    writeErr(stderr, "Run 'qrcl --help' for usage.\n");
+    writeErr(stderr, `qr-cli: ${message}\n`);
+    writeErr(stderr, "Run 'qr-cli --help' for usage.\n");
     return 1;
   }
 
@@ -244,7 +244,7 @@ export async function runQrCli(argv: string[], options: CliRunOptions = {}): Pro
   }
 
   if (parsed.showVersion) {
-    writeOut(stdout, `qrcl ${CLI_VERSION}\n`);
+    writeOut(stdout, `qr-cli ${CLI_VERSION}\n`);
     return 0;
   }
 
@@ -258,7 +258,7 @@ export async function runQrCli(argv: string[], options: CliRunOptions = {}): Pro
   }
 
   if (!input) {
-    writeErr(stderr, "Usage: qrcl [options] <text-to-encode>\n");
+    writeErr(stderr, "Usage: qr-cli [options] <text-to-encode>\n");
     return 1;
   }
 
@@ -272,7 +272,7 @@ export async function runQrCli(argv: string[], options: CliRunOptions = {}): Pro
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    writeErr(stderr, `qrcl: ${message}\n`);
+    writeErr(stderr, `qr-cli: ${message}\n`);
     return 1;
   }
 }

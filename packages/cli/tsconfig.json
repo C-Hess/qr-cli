@@ -7,7 +7,7 @@
       "node"
     ],
     "paths": {
-      "@qrcl/renderer": [
+      "@qr-cli/renderer": [
         "../renderer/src/index.ts"
       ]
     }

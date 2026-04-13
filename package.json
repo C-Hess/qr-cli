@@ -1,5 +1,5 @@
 {
-  "name": "qrcl",
+  "name": "qr-cli",
   "private": true,
   "version": "0.1.0",
   "description": "Monorepo for QR rendering packages",
@@ -12,9 +12,9 @@
     "packages/*"
   ],
   "scripts": {
-    "build:core": "npm run -w @qrcl/renderer build",
-    "build:cli": "npm run -w @qrcl/cli build",
-    "build:ink": "npm run -w @qrcl/ink build",
+    "build:core": "npm run -w @qr-cli/renderer build",
+    "build:cli": "npm run -w @qr-cli/cli build",
+    "build:ink": "npm run -w @qr-cli/ink build",
     "build": "npm run --workspaces build",
     "test": "vitest run",
     "test:watch": "vitest",

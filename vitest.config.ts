@@ -4,9 +4,9 @@ import { resolve } from "node:path";
 export default defineConfig({
   resolve: {
     alias: {
-      "@qrcl/renderer": resolve(__dirname, "packages/renderer/src/index.ts"),
-      "@qrcl/cli": resolve(__dirname, "packages/cli/src/index.ts"),
-      "@qrcl/ink": resolve(__dirname, "packages/ink/src/index.ts")
+      "@qr-cli/renderer": resolve(__dirname, "packages/renderer/src/index.ts"),
+      "@qr-cli/cli": resolve(__dirname, "packages/cli/src/index.ts"),
+      "@qr-cli/ink": resolve(__dirname, "packages/ink/src/index.ts")
     }
   },
   test: {

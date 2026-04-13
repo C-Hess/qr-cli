@@ -5,6 +5,6 @@ try {
 	process.exit(exitCode);
 } catch (error) {
 	const message = error instanceof Error ? error.message : String(error);
-	console.error(`qrcl: ${message}`);
+	console.error(`qr-cli: ${message}`);
 	process.exit(1);
 }

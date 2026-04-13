@@ -1,5 +1,5 @@
 {
-  "name": "@qrcl/ink",
+  "name": "@qr-cli/ink",
   "version": "0.1.0",
   "description": "React Ink wrapper for QR console rendering",
   "type": "module",
@@ -20,7 +20,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@qrcl/renderer": "file:../renderer"
+    "@qr-cli/renderer": "file:../renderer"
   },
   "peerDependencies": {
     "ink": ">=7.0.0",

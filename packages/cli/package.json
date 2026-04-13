@@ -1,5 +1,5 @@
 {
-  "name": "@qrcl/cli",
+  "name": "@qr-cli/cli",
   "version": "0.1.0",
   "description": "CLI wrapper for QR console rendering",
   "type": "module",
@@ -12,7 +12,7 @@
     }
   },
   "bin": {
-    "qrcl": "dist/cli.js"
+    "qr-cli": "dist/cli.js"
   },
   "files": [
     "dist"
@@ -23,6 +23,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@qrcl/renderer": "file:../renderer"
+    "@qr-cli/renderer": "file:../renderer"
   }
 }

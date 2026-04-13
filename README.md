@@ -1,12 +1,12 @@
-# qrcl
+# qr-cli
 
 TypeScript npm workspace for console QR rendering.
 
 ## Packages
 
-- `@qrcl/renderer`: core renderer API with a model-first QR render pipeline.
-- `@qrcl/cli`: command-line wrapper for writing renderer output to stdout.
-- `@qrcl/ink`: React Ink wrapper around the renderer.
+- `@qr-cli/renderer`: core renderer API with a model-first QR render pipeline.
+- `@qr-cli/cli`: command-line wrapper for writing renderer output to stdout.
+- `@qr-cli/ink`: React Ink wrapper around the renderer.
 
 ## Quick start
 
@@ -14,7 +14,7 @@ TypeScript npm workspace for console QR rendering.
 npm install
 npm test
 npm run build
-npx qrcl "https://example.com"
+npx qr-cli "https://example.com"
 ```
 
 ## Development checks
@@ -45,6 +45,6 @@ Use `--color-scheme high-contrast` for black-on-white rendering in terminals.
 
 ## Core API
 
-`@qrcl/renderer` exposes a model-first API via `renderQrHalfBlockModel(content, options)`.
+`@qr-cli/renderer` exposes a model-first API via `renderQrHalfBlockModel(content, options)`.
 Adapters like CLI and Ink can render from this shared model to apply
 platform-specific ergonomics without duplicating QR parsing logic.

@@ -19,7 +19,7 @@ describe("runQrCli", () => {
     });
 
     expect(exit).toBe(0);
-    expect(logs.out.join("")).toContain("Usage: qrcl");
+    expect(logs.out.join("")).toContain("Usage: qr-cli");
     expect(logs.err).toHaveLength(0);
   });
 
@@ -31,7 +31,7 @@ describe("runQrCli", () => {
     });
 
     expect(exit).toBe(0);
-    expect(logs.out.join("")).toMatch(/^qrcl\s+\d+\.\d+\.\d+/m);
+    expect(logs.out.join("")).toMatch(/^qr-cli\s+\d+\.\d+\.\d+/m);
   });
 
   it("returns error for unknown option", async () => {
@@ -43,7 +43,7 @@ describe("runQrCli", () => {
 
     expect(exit).toBe(1);
     expect(logs.err.join("")).toContain("Unknown option");
-    expect(logs.err.join("")).toContain("Run 'qrcl --help' for usage");
+    expect(logs.err.join("")).toContain("Run 'qr-cli --help' for usage");
   });
 
   it("returns usage error when no input and tty", async () => {
@@ -55,7 +55,7 @@ describe("runQrCli", () => {
     });
 
     expect(exit).toBe(1);
-    expect(logs.err.join("")).toContain("Usage: qrcl");
+    expect(logs.err.join("")).toContain("Usage: qr-cli");
   });
 
   it("reads input from stdin when needed", async () => {

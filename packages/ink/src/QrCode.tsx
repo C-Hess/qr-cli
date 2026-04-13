@@ -5,7 +5,7 @@ import {
   renderQrHalfBlockModel,
   resolveQrTerminalColorStyle,
   type QrRenderOptions
-} from "@qrcl/renderer";
+} from "@qr-cli/renderer";
 
 type InkColor = NonNullable<TextProps["color"]>;
 
