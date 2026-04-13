@@ -1,4 +1,4 @@
-import React, { useDeferredValue, useEffect, useMemo, useState } from "react";
+import React, { useDeferredValue, useMemo, useState } from "react";
 import { Box, Text, render, useApp, useInput } from "ink";
 import TextInput from "ink-text-input";
 import { QrCode, type QrCodeProps } from "@qr-cli/ink";
@@ -42,22 +42,6 @@ const COLOR_OPTIONS: DemoColorOption[] = [
   "white"
 ];
 
-function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delayMs);
-
-    return () => {
-      clearTimeout(timeout);
-    };
-  }, [value, delayMs]);
-
-  return debouncedValue;
-}
-
 const QrPreview = React.memo(function QrPreview({
   content,
   renderOptions,
@@ -97,6 +81,7 @@ function DemoApp(): React.JSX.Element {
     ...DEFAULT_CONTENT_BY_MODE
   });
   const [editingContent, setEditingContent] = useState<boolean>(false);
+  const [contentDraft, setContentDraft] = useState<string>("");
   const [darkModuleColor, setDarkModuleColor] = useState<DemoColorOption>("none");
   const [lightModuleColor, setLightModuleColor] = useState<DemoColorOption>("none");
   const [renderOptions, setRenderOptions] = useState<QrRenderOptions>({
@@ -109,9 +94,8 @@ function DemoApp(): React.JSX.Element {
   });
   const activeEncodingMode = renderOptions.encodingMode ?? "Byte";
   const content = contentByMode[activeEncodingMode] ?? "";
-  const debouncedContent = useDebouncedValue(content, 120);
-  const deferredContent = useDeferredValue(debouncedContent);
-  const previewContent = editingContent ? deferredContent : content;
+  const deferredContentDraft = useDeferredValue(contentDraft);
+  const previewContent = editingContent ? deferredContentDraft : content;
 
   useInput((input, key) => {
     if (key.ctrl && input === "c") {
@@ -120,7 +104,7 @@ function DemoApp(): React.JSX.Element {
     }
 
     if (editingContent) {
-      if (key.escape || key.return) {
+      if (key.escape) {
         setEditingContent(false);
         return;
       }
@@ -152,6 +136,7 @@ function DemoApp(): React.JSX.Element {
     }
 
     if (selectedField === "content" && key.return) {
+      setContentDraft(content);
       setEditingContent(true);
       return;
     }
@@ -256,7 +241,7 @@ function DemoApp(): React.JSX.Element {
 
       <Text color={editingContent ? "yellow" : undefined}>
         {editingContent
-          ? "Editing content: input is instant; QR preview updates are debounced. Enter/Esc to finish."
+          ? "Editing content: Enter/Esc to finish."
           : "Shortcuts: q quit, r reset content."}
       </Text>
 
@@ -273,14 +258,15 @@ function DemoApp(): React.JSX.Element {
               <Box key={field} flexDirection="row">
                 <Text color="yellow">{isSelected ? "▶" : " "} content: </Text>
                 <TextInput
-                  value={content}
-                  onChange={(value) => {
+                  value={contentDraft}
+                  onChange={setContentDraft}
+                  onSubmit={() => {
                     setContentByMode((current) => ({
                       ...current,
-                      [activeEncodingMode]: value
+                      [activeEncodingMode]: contentDraft
                     }));
+                    setEditingContent(false);
                   }}
-                  onSubmit={() => setEditingContent(false)}
                   focus
                 />
               </Box>
