@@ -3,6 +3,14 @@
   "version": "1.0.1",
   "license": "MIT",
   "description": "React Ink wrapper for QR console rendering",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/C-Hess/qr-cli"
+  },
+  "homepage": "https://github.com/C-Hess/qr-cli",
+  "bugs": {
+    "url": "https://github.com/C-Hess/qr-cli/issues"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

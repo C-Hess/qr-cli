@@ -4,6 +4,14 @@
   "license": "MIT",
   "private": true,
   "description": "Runnable Ink demo for qr-cli",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/C-Hess/qr-cli"
+  },
+  "homepage": "https://github.com/C-Hess/qr-cli",
+  "bugs": {
+    "url": "https://github.com/C-Hess/qr-cli/issues"
+  },
   "type": "module",
   "main": "src/index.tsx",
   "scripts": {
