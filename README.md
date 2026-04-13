@@ -2,6 +2,10 @@
 
 Terminal QR codes, but with style.
 
+<p align="center">
+  <img src="./assets/readme-media/terminal-example.webp" alt="qr-cli terminal example" width="900" />
+</p>
+
 This repo is a TypeScript workspace with three packages:
 
 - `@qr-cli/renderer`: core QR rendering (half-block and full-block output)
@@ -82,35 +86,6 @@ Live controls while running:
 
 The demo can live-toggle `content`, `outputMode`, `margin`, `padding`,
 `errorCorrectionLevel`, `encodingMode`, `qrVersion`, and foreground/background colors.
-
-## Real Sample Output (halfblocks)
-
-Example content:
-
-```text
-https://github.com/C-Hess/qr-cli
-```
-
-Rendered output:
-
-```text
-                                 
-  █▀▀▀▀▀█ █▄█ █  ▀█▀▀▄▄ █▀▀▀▀▀█  
-  █ ███ █ ▀▀ ██  ▀█▄ █▄ █ ███ █  
-  █ ▀▀▀ █ ▀ ▀█  ▀██▀▄ ▄ █ ▀▀▀ █  
-  ▀▀▀▀▀▀▀ ▀▄▀ ▀▄▀▄█ ▀▄▀ ▀▀▀▀▀▀▀  
-  ▀ ▄███▀▀▀▄▄▄ █  ▄▀ ▄▄█ ▄█ ██▀  
-  ▄▀ ▄▀▀▀ ▄  ▀ █ ▀█▄▀▄ ▄▄█▀▄▀ ▄  
-  ██▄▀▀▀▀ ██▀▀▄█▄▀█▄██▀ ██▄▄▄▄█  
-  ▄ ▄ ██▀▄▄▀▀▄▀▀ ▄▀▀ █▀▀▀▄█ █ █  
-  █▀██▀█▀▀▀▀█▀▀▄█ ▄▄ █▀▀  ▄▀▄▄   
-  ██ ▄ ▄▀▀█▀▀▄▄ ▄▀ ▀▀█  ▄ ▀█▄ ▀  
-  ▀▀  ▀ ▀ █▀▄▀█▀█▄▀▀  █▀▀▀██▀▀   
-  █▀▀▀▀▀█ █▀▀ ▀ █▀ ▄███ ▀ █▀  ▄  
-  █ ███ █ █▀█ ██▀▄█▄█▀▀█▀▀▀▀ ▀█  
-  █ ▀▀▀ █  █▄▀▀  █▄   ▀▀▄█▀▄█▀█  
-  ▀▀▀▀▀▀▀ ▀▀▀▀   ▀   ▀▀ ▀ ▀      
-```
 
 ## CLI Options
 
