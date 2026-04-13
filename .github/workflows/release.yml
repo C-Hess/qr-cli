@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v*.*.*
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish to npm and create GitHub release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate tag matches package versions
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          ROOT_VERSION=$(node -p "require('./package.json').version")
+          RENDERER_VERSION=$(node -p "require('./packages/renderer/package.json').version")
+          INK_VERSION=$(node -p "require('./packages/ink/package.json').version")
+          CLI_VERSION=$(node -p "require('./packages/cli/package.json').version")
+
+          if [ "$TAG_VERSION" != "$ROOT_VERSION" ] || [ "$TAG_VERSION" != "$RENDERER_VERSION" ] || [ "$TAG_VERSION" != "$INK_VERSION" ] || [ "$TAG_VERSION" != "$CLI_VERSION" ]; then
+            echo "Tag version v$TAG_VERSION does not match all package versions"
+            echo "root=$ROOT_VERSION renderer=$RENDERER_VERSION ink=$INK_VERSION cli=$CLI_VERSION"
+            exit 1
+          fi
+
+      - name: Verify workspace
+        run: npm run check
+
+      - name: Publish @qr-cli/renderer
+        run: npm publish -w @qr-cli/renderer --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @qr-cli/ink
+        run: npm publish -w @qr-cli/ink --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @qr-cli/cli
+        run: npm publish -w @qr-cli/cli --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
