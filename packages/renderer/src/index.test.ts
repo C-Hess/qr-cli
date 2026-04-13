@@ -97,8 +97,9 @@ describe("render string outputs", () => {
 
   it("adds ansi sequences in high-contrast mode", () => {
     const output = renderQrAnsi("ansi-check", { colorScheme: "high-contrast" });
-    expect(output).toContain("\u001b[30m");
-    expect(output).toContain("\u001b[39m");
+    expect(output).toContain("\u001b[");
+    expect(output).toContain("\u001b[30;47m");
+    expect(output).toContain("\u001b[0m");
   });
 
   it("omits ansi sequences when color is none", () => {
