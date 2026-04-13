@@ -1,6 +1,6 @@
 {
   "name": "@qr-cli/ink",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "license": "MIT",
   "description": "React Ink wrapper for QR console rendering",
   "repository": {
