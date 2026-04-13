@@ -1,6 +1,11 @@
 import React from "react";
 import { Text, type TextProps } from "ink";
-import { renderQrToString, resolveQrColorStyle, type RenderQrOptions } from "@qrcl/core";
+import {
+  renderQrFullBlockModel,
+  renderQrModel,
+  resolveQrColorStyle,
+  type RenderQrOptions
+} from "@qrcl/core";
 
 type InkColor = NonNullable<TextProps["color"]>;
 
@@ -21,65 +26,102 @@ export function QrCode({
     return <Text color="red">QR value is required.</Text>;
   }
 
-  const output = renderQrToString(value, options);
+  if (options?.outputMode === "fullblocks") {
+    const model = renderQrFullBlockModel(value, options);
+    const colorStyle = resolveQrColorStyle(options?.colorScheme ?? "none");
+    const resolvedLightColor = lightColor ?? colorStyle.background;
+    const resolvedDarkColor = darkColor ?? colorStyle.foreground ?? (resolvedLightColor ? "black" : undefined);
+
+    if (!resolvedLightColor && !resolvedDarkColor) {
+      return <Text>{model.rows.map((row) => row.raw).join("\n")}</Text>;
+    }
+
+    return (
+      <>
+        {model.rows.map((row, index) => {
+          if (!row.isContentRow) {
+            return <Text key={`line-${index}`}>{row.cells.map((cell) => (cell.dark ? "██" : "  ")).join("")}</Text>;
+          }
+
+          const left = row.cells
+            .slice(0, model.margin)
+            .map((cell) => (cell.dark ? "██" : "  "))
+            .join("");
+          const middle = row.cells
+            .slice(model.margin, model.margin + model.size)
+            .map((cell) => (cell.dark ? "██" : "  "))
+            .join("");
+          const right = row.cells
+            .slice(model.margin + model.size)
+            .map((cell) => (cell.dark ? "██" : "  "))
+            .join("");
+
+          return (
+            <Text key={`line-${index}`}>
+              {left}
+              <Text color={resolvedDarkColor} backgroundColor={resolvedLightColor}>
+                {middle}
+              </Text>
+              {right}
+            </Text>
+          );
+        })}
+      </>
+    );
+  }
+
+  const model = renderQrModel(value, options);
   const colorStyle = resolveQrColorStyle(options?.colorScheme ?? "none");
   const resolvedLightColor = lightColor ?? colorStyle.background;
   const resolvedDarkColor = darkColor ?? colorStyle.foreground ?? (resolvedLightColor ? "black" : undefined);
 
   if (!resolvedLightColor && !resolvedDarkColor) {
-    return <Text>{output}</Text>;
+    return <Text>{model.rows.map((row) => row.raw).join("\n")}</Text>;
   }
-
-  const margin = options?.margin ?? 2;
-  const lines = output.split("\n");
-  const width = lines[0]?.length ?? 0;
-  const size = Math.max(0, width - margin * 2);
-  const maxY = margin + size;
 
   return (
     <>
-      {lines.map((line, index) => {
-        const topY = index * 2;
-        const bottomY = topY + 1;
-        const rowTouchesContent =
-          (topY >= margin && topY < maxY) || (bottomY >= margin && bottomY < maxY);
-        const rowFullyInsideContent =
-          topY >= margin && topY < maxY && bottomY >= margin && bottomY < maxY;
-        const isUpperBoundaryRow = topY < margin && bottomY >= margin && bottomY < maxY;
-        const isLowerBoundaryRow = topY >= margin && topY < maxY && bottomY >= maxY;
-
-        if (!rowTouchesContent) {
-          return <Text key={`line-${index}`}>{line}</Text>;
+      {model.rows.map((row, index) => {
+        if (!row.touchesContent) {
+          return <Text key={`line-${index}`}>{row.raw}</Text>;
         }
 
-        const left = line.slice(0, margin);
-        const middle = line.slice(margin, margin + size);
-        const right = line.slice(margin + size);
+        const left = row.cells
+          .slice(0, model.margin)
+          .map((cell) => cell.char)
+          .join("");
+        const middle = row.cells
+          .slice(model.margin, model.margin + model.size)
+          .map((cell) => cell.char)
+          .join("");
+        const right = row.cells
+          .slice(model.margin + model.size)
+          .map((cell) => cell.char)
+          .join("");
 
-        const isTopFilled = (char: string): boolean => char === "▀" || char === "█";
-        const isBottomFilled = (char: string): boolean => char === "▄" || char === "█";
-
-        if (isUpperBoundaryRow || isLowerBoundaryRow) {
+        if (row.isUpperBoundaryRow || row.isLowerBoundaryRow) {
           return (
             <Text key={`line-${index}`}>
               {left}
-              {middle.split("").map((char, charIndex) => {
-                if (isUpperBoundaryRow) {
-                  const dark = isBottomFilled(char);
+              {row.cells
+                .filter((cell) => cell.isContentColumn)
+                .map((cell, charIndex) => {
+                  if (row.isUpperBoundaryRow) {
+                    const dark = cell.bottomDark;
+                    return (
+                      <Text key={`c-${index}-${charIndex}`} color={dark ? resolvedDarkColor : resolvedLightColor}>
+                        ▄
+                      </Text>
+                    );
+                  }
+
+                  const dark = cell.topDark;
                   return (
                     <Text key={`c-${index}-${charIndex}`} color={dark ? resolvedDarkColor : resolvedLightColor}>
-                      ▄
+                      ▀
                     </Text>
                   );
-                }
-
-                const dark = isTopFilled(char);
-                return (
-                  <Text key={`c-${index}-${charIndex}`} color={dark ? resolvedDarkColor : resolvedLightColor}>
-                    ▀
-                  </Text>
-                );
-              })}
+                })}
               {right}
             </Text>
           );
@@ -90,7 +132,7 @@ export function QrCode({
             {left}
             <Text
               color={resolvedDarkColor}
-              backgroundColor={rowFullyInsideContent ? resolvedLightColor : undefined}
+              backgroundColor={row.isFullyInsideContent ? resolvedLightColor : undefined}
             >
               {middle}
             </Text>

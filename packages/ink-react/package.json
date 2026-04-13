@@ -15,7 +15,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --sourcemap --clean --external react --external ink --external @qrcl/core",
+    "build": "vite build",
     "clean": "rm -rf dist *.tsbuildinfo",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -27,6 +27,6 @@
     "react": ">=18.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.12"
+    "@types/react": "19.1.2"
   }
 }

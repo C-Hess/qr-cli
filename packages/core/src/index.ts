@@ -2,8 +2,8 @@ import qrcode from "qrcode-generator";
 
 export type ErrorCorrectionLevel = "L" | "M" | "Q" | "H";
 export type EncodingMode = "Numeric" | "Alphanumeric" | "Byte" | "Kanji";
-export type OutputMode = "halfblocks";
 export type ColorScheme = "none" | "high-contrast";
+export type OutputMode = "halfblocks" | "fullblocks";
 
 export interface QrColorStyle {
   foreground?: "black";
@@ -18,8 +18,65 @@ export interface RenderQrOptions {
   errorCorrectionLevel?: ErrorCorrectionLevel;
   qrVersion?: number;
   encodingMode?: EncodingMode;
-  outputMode?: OutputMode;
   colorScheme?: ColorScheme;
+  outputMode?: OutputMode;
+}
+
+export interface NormalizedRenderQrOptions {
+  invert: boolean;
+  margin: number;
+  errorCorrectionLevel: ErrorCorrectionLevel;
+  qrVersion: number;
+  encodingMode: EncodingMode;
+  colorScheme: ColorScheme;
+  outputMode: OutputMode;
+}
+
+export interface QrHalfBlockCell {
+  char: " " | "▀" | "▄" | "█";
+  topDark: boolean;
+  bottomDark: boolean;
+  isContentColumn: boolean;
+}
+
+export interface QrHalfBlockRow {
+  raw: string;
+  cells: QrHalfBlockCell[];
+  topY: number;
+  bottomY: number;
+  touchesContent: boolean;
+  isFullyInsideContent: boolean;
+  isUpperBoundaryRow: boolean;
+  isLowerBoundaryRow: boolean;
+}
+
+export interface QrHalfBlockRenderModel {
+  margin: number;
+  size: number;
+  width: number;
+  colorScheme: ColorScheme;
+  rows: QrHalfBlockRow[];
+}
+
+export interface QrFullBlockCell {
+  char: " " | "█";
+  dark: boolean;
+  isContentColumn: boolean;
+}
+
+export interface QrFullBlockRow {
+  raw: string;
+  cells: QrFullBlockCell[];
+  y: number;
+  isContentRow: boolean;
+}
+
+export interface QrFullBlockRenderModel {
+  margin: number;
+  size: number;
+  width: number;
+  colorScheme: ColorScheme;
+  rows: QrFullBlockRow[];
 }
 
 export function resolveQrColorStyle(colorScheme: ColorScheme = "none"): QrColorStyle {
@@ -38,98 +95,26 @@ export function resolveQrColorStyle(colorScheme: ColorScheme = "none"): QrColorS
   };
 }
 
-function applyAnsiColorToQrContent(output: string, margin: number, colorScheme: ColorScheme): string {
-  const colorStyle = resolveQrColorStyle(colorScheme);
-  if (!colorStyle.ansiOpen) {
-    return output;
-  }
+const VALID_ERROR_CORRECTION_LEVELS: ErrorCorrectionLevel[] = ["L", "M", "Q", "H"];
+const VALID_ENCODING_MODES: EncodingMode[] = ["Numeric", "Alphanumeric", "Byte", "Kanji"];
+const VALID_OUTPUT_MODES: OutputMode[] = ["halfblocks", "fullblocks"];
 
-  const lines = output.split("\n");
-  if (lines.length === 0) {
-    return output;
-  }
-
-  const width = lines[0]?.length ?? 0;
-  const size = Math.max(0, width - margin * 2);
-  const maxY = margin + size;
-
-  const ansiBlackFgOpen = "\u001b[30m";
-  const ansiWhiteFgOpen = "\u001b[37m";
-  const ansiFgClose = "\u001b[39m";
-
-  const isTopFilled = (char: string): boolean => char === "▀" || char === "█";
-  const isBottomFilled = (char: string): boolean => char === "▄" || char === "█";
-
-  return lines
-    .map((line, lineIndex) => {
-      const topY = lineIndex * 2;
-      const bottomY = topY + 1;
-      const rowTouchesContent =
-        (topY >= margin && topY < maxY) || (bottomY >= margin && bottomY < maxY);
-      const rowFullyInsideContent =
-        topY >= margin && topY < maxY && bottomY >= margin && bottomY < maxY;
-      const isUpperBoundaryRow = topY < margin && bottomY >= margin && bottomY < maxY;
-      const isLowerBoundaryRow = topY >= margin && topY < maxY && bottomY >= maxY;
-
-      if (!rowTouchesContent) {
-        return line;
-      }
-
-      if (isUpperBoundaryRow || isLowerBoundaryRow) {
-        let boundaryLine = "";
-        for (let x = 0; x < line.length; x += 1) {
-          const char = line[x] ?? " ";
-          const inContentColumn = x >= margin && x < maxY;
-          if (!inContentColumn) {
-            boundaryLine += char;
-            continue;
-          }
-
-          if (isUpperBoundaryRow) {
-            const dark = isBottomFilled(char);
-            const fg = dark ? ansiBlackFgOpen : ansiWhiteFgOpen;
-            boundaryLine += `${fg}▄${ansiFgClose}`;
-          } else {
-            const dark = isTopFilled(char);
-            const fg = dark ? ansiBlackFgOpen : ansiWhiteFgOpen;
-            boundaryLine += `${fg}▀${ansiFgClose}`;
-          }
-        }
-        return boundaryLine;
-      }
-
-      let coloredLine = "";
-      for (let x = 0; x < line.length; x += 1) {
-        const char = line[x] ?? "";
-        const inContentColumn = x >= margin && x < maxY;
-        if (inContentColumn) {
-          if (rowFullyInsideContent) {
-            coloredLine += `${colorStyle.ansiOpen}${char}${colorStyle.ansiClose}`;
-          } else {
-            coloredLine += `${ansiBlackFgOpen}${char}${ansiFgClose}`;
-          }
-        } else {
-          coloredLine += char;
-        }
-      }
-      return coloredLine;
-    })
-    .join("\n");
+interface QrModuleGrid {
+  margin: number;
+  size: number;
+  width: number;
+  colorScheme: ColorScheme;
+  isDarkAt: (y: number, x: number) => boolean;
 }
 
-function renderQrMonochrome(value: string, options: RenderQrOptions = {}): { output: string; margin: number } {
-  if (!value.trim()) {
-    throw new Error("A non-empty value is required.");
-  }
-
+export function normalizeRenderQrOptions(options: RenderQrOptions = {}): NormalizedRenderQrOptions {
   const margin = options.margin ?? 2;
-  if (margin < 0 || !Number.isInteger(margin)) {
+  if (!Number.isInteger(margin) || margin < 0) {
     throw new Error("margin must be a non-negative integer.");
   }
 
   const errorCorrectionLevel = options.errorCorrectionLevel ?? "M";
-  const validErrorCorrectionLevels: ErrorCorrectionLevel[] = ["L", "M", "Q", "H"];
-  if (!validErrorCorrectionLevels.includes(errorCorrectionLevel)) {
+  if (!VALID_ERROR_CORRECTION_LEVELS.includes(errorCorrectionLevel)) {
     throw new Error("errorCorrectionLevel must be one of L, M, Q, H.");
   }
 
@@ -139,14 +124,8 @@ function renderQrMonochrome(value: string, options: RenderQrOptions = {}): { out
   }
 
   const encodingMode = options.encodingMode ?? "Byte";
-  const validEncodingModes: EncodingMode[] = ["Numeric", "Alphanumeric", "Byte", "Kanji"];
-  if (!validEncodingModes.includes(encodingMode)) {
+  if (!VALID_ENCODING_MODES.includes(encodingMode)) {
     throw new Error("encodingMode must be one of Numeric, Alphanumeric, Byte, Kanji.");
-  }
-
-  const outputMode = options.outputMode ?? "halfblocks";
-  if (outputMode !== "halfblocks") {
-    throw new Error("outputMode currently only supports halfblocks.");
   }
 
   const colorScheme = options.colorScheme ?? "none";
@@ -154,78 +133,290 @@ function renderQrMonochrome(value: string, options: RenderQrOptions = {}): { out
     throw new Error("colorScheme must be one of none, high-contrast.");
   }
 
-  const qr = qrcode(qrVersion as Parameters<typeof qrcode>[0], errorCorrectionLevel);
-  qr.addData(value, encodingMode);
+  const outputMode = options.outputMode ?? "halfblocks";
+  if (!VALID_OUTPUT_MODES.includes(outputMode)) {
+    throw new Error("outputMode must be one of halfblocks, fullblocks.");
+  }
+
+  return {
+    invert: options.invert ?? false,
+    margin,
+    errorCorrectionLevel,
+    qrVersion,
+    encodingMode,
+    colorScheme,
+    outputMode
+  };
+}
+
+function createQrModuleGrid(value: string, options: RenderQrOptions = {}): QrModuleGrid {
+  if (!value.trim()) {
+    throw new Error("A non-empty value is required.");
+  }
+
+  const normalized = normalizeRenderQrOptions(options);
+  const qr = qrcode(
+    normalized.qrVersion as Parameters<typeof qrcode>[0],
+    normalized.errorCorrectionLevel
+  );
+  qr.addData(value, normalized.encodingMode);
   qr.make();
 
   const size = qr.getModuleCount();
-  const width = size + margin * 2;
-  const matrix: boolean[][] = Array.from({ length: width }, (_, y) =>
-    Array.from({ length: width }, (_, x) => {
-      const srcX = x - margin;
-      const srcY = y - margin;
-      if (srcX < 0 || srcY < 0 || srcX >= size || srcY >= size) {
-        return false;
-      }
+  const width = size + normalized.margin * 2;
 
-      return qr.isDark(srcY, srcX);
-    })
-  );
-
-  const isDark = (y: number, x: number): boolean => {
-    const row = matrix[y];
-    if (!row) {
-      return false;
+  const isDarkAt = (y: number, x: number): boolean => {
+    const srcX = x - normalized.margin;
+    const srcY = y - normalized.margin;
+    const inside = srcY >= 0 && srcY < size && srcX >= 0 && srcX < size;
+    if (!inside) {
+      return normalized.invert;
     }
-    return row[x] ?? false;
+
+    const dark = qr.isDark(srcY, srcX);
+    return normalized.invert ? !dark : dark;
   };
 
-  const invert = options.invert ?? false;
-  const lines: string[] = [];
-  for (let y = 0; y < width; y += 2) {
-    let line = "";
-    for (let x = 0; x < width; x += 1) {
-      const top = invert ? !isDark(y, x) : isDark(y, x);
-      const bottom = invert ? !isDark(y + 1, x) : isDark(y + 1, x);
+  return {
+    margin: normalized.margin,
+    size,
+    width,
+    colorScheme: normalized.colorScheme,
+    isDarkAt
+  };
+}
 
-      if (top && bottom) {
-        line += "█";
-      } else if (top) {
-        line += "▀";
-      } else if (bottom) {
-        line += "▄";
-      } else {
-        line += " ";
-      }
+function toHalfBlock(topDark: boolean, bottomDark: boolean): " " | "▀" | "▄" | "█" {
+  if (topDark && bottomDark) {
+    return "█";
+  }
+  if (topDark) {
+    return "▀";
+  }
+  if (bottomDark) {
+    return "▄";
+  }
+  return " ";
+}
+
+export function renderQrModel(value: string, options: RenderQrOptions = {}): QrHalfBlockRenderModel {
+  const grid = createQrModuleGrid(value, options);
+  const maxY = grid.margin + grid.size;
+  const rows: QrHalfBlockRow[] = [];
+
+  for (let y = 0; y < grid.width; y += 2) {
+    const topY = y;
+    const bottomY = topY + 1;
+    const touchesContent =
+      (topY >= grid.margin && topY < maxY) ||
+      (bottomY >= grid.margin && bottomY < maxY);
+    const isFullyInsideContent =
+      topY >= grid.margin &&
+      topY < maxY &&
+      bottomY >= grid.margin &&
+      bottomY < maxY;
+    const isUpperBoundaryRow =
+      topY < grid.margin && bottomY >= grid.margin && bottomY < maxY;
+    const isLowerBoundaryRow = topY >= grid.margin && topY < maxY && bottomY >= maxY;
+
+    let raw = "";
+    const cells: QrHalfBlockCell[] = [];
+
+    for (let x = 0; x < grid.width; x += 1) {
+      const topDark = grid.isDarkAt(topY, x);
+      const bottomDark = grid.isDarkAt(bottomY, x);
+      const char = toHalfBlock(topDark, bottomDark);
+
+      raw += char;
+      cells.push({
+        char,
+        topDark,
+        bottomDark,
+        isContentColumn: x >= grid.margin && x < maxY
+      });
     }
-    lines.push(line);
+
+    rows.push({
+      raw,
+      cells,
+      topY,
+      bottomY,
+      touchesContent,
+      isFullyInsideContent,
+      isUpperBoundaryRow,
+      isLowerBoundaryRow
+    });
   }
 
-  if (lines.length > 0 && margin > 0) {
-    const lastLine = lines[lines.length - 1] ?? "";
-    if (/^\s*$/.test(lastLine)) {
-      lines.pop();
+  if (rows.length > 0 && grid.margin > 0) {
+    const lastRow = rows[rows.length - 1];
+    if (lastRow && /^\s*$/.test(lastRow.raw)) {
+      rows.pop();
     }
   }
 
   return {
-    output: lines.join("\n"),
-    margin
+    margin: grid.margin,
+    size: grid.size,
+    width: grid.width,
+    colorScheme: grid.colorScheme,
+    rows
   };
+}
+
+export function renderQrFullBlockModel(value: string, options: RenderQrOptions = {}): QrFullBlockRenderModel {
+  const grid = createQrModuleGrid(value, options);
+  const maxY = grid.margin + grid.size;
+  const rows: QrFullBlockRow[] = [];
+
+  for (let y = 0; y < grid.width; y += 1) {
+    const isContentRow = y >= grid.margin && y < maxY;
+    let raw = "";
+    const cells: QrFullBlockCell[] = [];
+
+    for (let x = 0; x < grid.width; x += 1) {
+      const dark = grid.isDarkAt(y, x);
+      const char: " " | "█" = dark ? "█" : " ";
+      raw += char;
+      cells.push({
+        char,
+        dark,
+        isContentColumn: x >= grid.margin && x < maxY
+      });
+    }
+
+    rows.push({
+      raw,
+      cells,
+      y,
+      isContentRow
+    });
+  }
+
+  return {
+    margin: grid.margin,
+    size: grid.size,
+    width: grid.width,
+    colorScheme: grid.colorScheme,
+    rows
+  };
+}
+
+function applyAnsiColorToQrContent(model: QrHalfBlockRenderModel, colorScheme: ColorScheme): string {
+  const colorStyle = resolveQrColorStyle(colorScheme);
+  if (!colorStyle.ansiOpen) {
+    return model.rows.map((row) => row.raw).join("\n");
+  }
+
+  if (model.rows.length === 0) {
+    return "";
+  }
+
+  const ansiBlackFgOpen = "\u001b[30m";
+  const ansiWhiteFgOpen = "\u001b[37m";
+  const ansiFgClose = "\u001b[39m";
+  return model.rows
+    .map((row) => {
+      if (!row.touchesContent) {
+        return row.raw;
+      }
+
+      let coloredLine = "";
+      for (let x = 0; x < row.cells.length; x += 1) {
+        const cell = row.cells[x];
+        if (!cell) {
+          continue;
+        }
+
+        if (!cell.isContentColumn) {
+          coloredLine += cell.char;
+          continue;
+        }
+
+        if (row.isUpperBoundaryRow) {
+          const fg = cell.bottomDark ? ansiBlackFgOpen : ansiWhiteFgOpen;
+          coloredLine += `${fg}▄${ansiFgClose}`;
+          continue;
+        }
+
+        if (row.isLowerBoundaryRow) {
+          const fg = cell.topDark ? ansiBlackFgOpen : ansiWhiteFgOpen;
+          coloredLine += `${fg}▀${ansiFgClose}`;
+          continue;
+        }
+
+        if (row.isFullyInsideContent) {
+          coloredLine += `${colorStyle.ansiOpen}${cell.char}${colorStyle.ansiClose}`;
+          continue;
+        }
+
+        coloredLine += `${ansiBlackFgOpen}${cell.char}${ansiFgClose}`;
+      }
+      return coloredLine;
+    })
+    .join("\n");
+}
+
+function applyAnsiColorToFullBlockContent(model: QrFullBlockRenderModel, colorScheme: ColorScheme): string {
+  const colorStyle = resolveQrColorStyle(colorScheme);
+  if (!colorStyle.ansiOpen) {
+    return model.rows
+      .map((row) => row.cells.map((cell) => (cell.dark ? "██" : "  ")).join(""))
+      .join("\n");
+  }
+
+  return model.rows
+    .map((row) => {
+      if (!row.isContentRow) {
+        return row.raw;
+      }
+
+      let coloredLine = "";
+      for (let x = 0; x < row.cells.length; x += 1) {
+        const cell = row.cells[x];
+        if (!cell) {
+          continue;
+        }
+
+        if (!cell.isContentColumn) {
+          coloredLine += cell.dark ? "██" : "  ";
+          continue;
+        }
+
+        const moduleText = cell.dark ? "██" : "  ";
+        coloredLine += `${colorStyle.ansiOpen}${moduleText}${colorStyle.ansiClose}`;
+      }
+      return coloredLine;
+    })
+    .join("\n");
 }
 
 /**
  * Render a QR code to a terminal-safe string.
  */
 export function renderQrToString(value: string, options: RenderQrOptions = {}): string {
-  return renderQrMonochrome(value, options).output;
+  const normalized = normalizeRenderQrOptions(options);
+  if (normalized.outputMode === "fullblocks") {
+    const model = renderQrFullBlockModel(value, normalized);
+    return model.rows
+      .map((row) => row.cells.map((cell) => (cell.dark ? "██" : "  ")).join(""))
+      .join("\n");
+  }
+
+  const model = renderQrModel(value, options);
+  return model.rows.map((row) => row.raw).join("\n");
 }
 
 /**
  * Render a QR code with ANSI styling for terminal adapters.
  */
 export function renderQrToAnsiString(value: string, options: RenderQrOptions = {}): string {
-  const { output, margin } = renderQrMonochrome(value, options);
-  const colorScheme = options.colorScheme ?? "none";
-  return applyAnsiColorToQrContent(output, margin, colorScheme);
+  const normalized = normalizeRenderQrOptions(options);
+  if (normalized.outputMode === "fullblocks") {
+    const model = renderQrFullBlockModel(value, normalized);
+    return applyAnsiColorToFullBlockContent(model, model.colorScheme);
+  }
+
+  const model = renderQrModel(value, options);
+  return applyAnsiColorToQrContent(model, model.colorScheme);
 }

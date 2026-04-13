@@ -5,8 +5,8 @@
   "description": "Monorepo for QR rendering packages",
   "packageManager": "npm@11.11.0",
   "engines": {
-    "node": ">=24.14.1",
-    "npm": ">=11.11.0"
+    "node": ">=18",
+    "npm": ">=9"
   },
   "workspaces": [
     "packages/*"
@@ -16,13 +16,20 @@
     "build:cli": "npm run -w @qrcl/cli build",
     "build:ink": "npm run -w @qrcl/ink-react build",
     "build": "npm run --workspaces build",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "npm run --workspaces clean",
     "typecheck": "npm run --workspaces typecheck",
-    "check": "npm run typecheck && npm run build"
+    "check": "npm run typecheck && npm run test && npm run build"
   },
   "devDependencies": {
-    "@types/node": "^24.6.0",
-    "tsup": "^8.5.0",
-    "typescript": "^5.9.3"
+    "@types/node": "24.6.0",
+    "ink": "6.3.1",
+    "ink-testing-library": "4.0.0",
+    "react": "19.1.1",
+    "typescript": "5.9.3",
+    "vite": "7.1.12",
+    "vite-plugin-dts": "4.5.4",
+    "vitest": "3.2.4"
   }
 }

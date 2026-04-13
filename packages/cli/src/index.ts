@@ -3,8 +3,12 @@ import {
   type ColorScheme,
   type EncodingMode,
   type ErrorCorrectionLevel,
+  type OutputMode,
   type RenderQrOptions
 } from "@qrcl/core";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export interface CliRunOptions {
   stderr?: {
@@ -27,7 +31,18 @@ interface ParsedArgs {
   showVersion: boolean;
 }
 
-const CLI_VERSION = "0.1.0";
+const CLI_VERSION = (() => {
+  try {
+    const currentDir = dirname(fileURLToPath(import.meta.url));
+    const packageJsonPath = resolve(currentDir, "../package.json");
+    const parsed = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
+      version?: unknown;
+    };
+    return typeof parsed.version === "string" ? parsed.version : "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+})();
 
 function writeOut(stdout: NonNullable<CliRunOptions["stdout"]>, message: string): void {
   if (stdout.write) {
@@ -60,7 +75,7 @@ function usage(): string {
     "  --qr-version <n|auto>  QR version (0/auto means automatic)",
     "  --mode <mode>          Encoding mode: numeric|alphanumeric|byte|kanji",
     "  --color <mode>         Color mode: none|high-contrast",
-    "  --output <mode>        Output mode (currently: halfblocks)",
+    "  --output <mode>        Output mode: halfblocks|fullblocks",
     "  --no-newline           Do not print trailing newline",
     "  --help                 Show help",
     "  --version              Show CLI version",
@@ -106,8 +121,8 @@ function parseArgs(argv: string[]): ParsedArgs {
       }
       i += 1;
       const margin = Number.parseInt(nextArg, 10);
-      if (!Number.isInteger(margin) || margin < 0) {
-        throw new Error("--margin must be a non-negative integer.");
+      if (!Number.isInteger(margin)) {
+        throw new Error("--margin must be an integer.");
       }
       renderOptions.margin = margin;
       continue;
@@ -119,10 +134,6 @@ function parseArgs(argv: string[]): ParsedArgs {
       }
       i += 1;
       const level = nextArg.toUpperCase() as ErrorCorrectionLevel;
-      const validLevels: ErrorCorrectionLevel[] = ["L", "M", "Q", "H"];
-      if (!validLevels.includes(level)) {
-        throw new Error("--ec must be one of L, M, Q, H.");
-      }
       renderOptions.errorCorrectionLevel = level;
       continue;
     }
@@ -137,8 +148,8 @@ function parseArgs(argv: string[]): ParsedArgs {
         continue;
       }
       const version = Number.parseInt(nextArg, 10);
-      if (!Number.isInteger(version) || version < 1 || version > 40) {
-        throw new Error("--qr-version must be auto or an integer in range 1..40.");
+      if (!Number.isInteger(version)) {
+        throw new Error("--qr-version must be auto or an integer.");
       }
       renderOptions.qrVersion = version;
       continue;
@@ -156,23 +167,8 @@ function parseArgs(argv: string[]): ParsedArgs {
         byte: "Byte",
         kanji: "Kanji"
       };
-      const mode = modeMap[normalized];
-      if (!mode) {
-        throw new Error("--mode must be one of numeric, alphanumeric, byte, kanji.");
-      }
+      const mode = modeMap[normalized] ?? (nextArg as EncodingMode);
       renderOptions.encodingMode = mode;
-      continue;
-    }
-
-    if (arg === "--output") {
-      if (!nextArg) {
-        throw new Error("Missing value for --output.");
-      }
-      i += 1;
-      if (nextArg !== "halfblocks") {
-        throw new Error("--output currently only supports halfblocks.");
-      }
-      renderOptions.outputMode = "halfblocks";
       continue;
     }
 
@@ -182,10 +178,19 @@ function parseArgs(argv: string[]): ParsedArgs {
       }
       i += 1;
       const color = nextArg.toLowerCase() as ColorScheme;
-      if (color !== "none" && color !== "high-contrast") {
-        throw new Error("--color must be one of none, high-contrast.");
-      }
       renderOptions.colorScheme = color;
+      continue;
+    }
+
+    if (arg === "--output") {
+      if (!nextArg) {
+        throw new Error("Missing value for --output.");
+      }
+      i += 1;
+      const mode = nextArg.toLowerCase();
+      const mappedMode: OutputMode | undefined =
+        mode === "half" ? "halfblocks" : mode === "full" ? "fullblocks" : (mode as OutputMode);
+      renderOptions.outputMode = mappedMode;
       continue;
     }
 

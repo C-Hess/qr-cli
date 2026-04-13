@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { runQrCli } from "./index.js";
 
 try {

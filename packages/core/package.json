@@ -15,11 +15,11 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --sourcemap --clean",
+    "build": "vite build",
     "clean": "rm -rf dist *.tsbuildinfo",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "qrcode-generator": "^2.0.4"
+    "qrcode-generator": "2.0.4"
   }
 }
