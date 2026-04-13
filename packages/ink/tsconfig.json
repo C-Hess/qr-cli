@@ -1,9 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "rootDir": "..",
     "outDir": "dist",
     "jsx": "react-jsx",
-    "baseUrl": ".",
     "paths": {
       "@qrcl/renderer": [
         "../renderer/src/index.ts"

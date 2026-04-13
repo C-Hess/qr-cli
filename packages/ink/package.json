@@ -23,10 +23,10 @@
     "@qrcl/renderer": "file:../renderer"
   },
   "peerDependencies": {
-    "ink": ">=5.0.0",
-    "react": ">=18.0.0"
+    "ink": ">=7.0.0",
+    "react": ">=19.2.0"
   },
   "devDependencies": {
-    "@types/react": "19.1.2"
+    "@types/react": "19.2.14"
   }
 }
