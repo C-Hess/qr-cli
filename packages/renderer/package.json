@@ -1,6 +1,7 @@
 {
   "name": "@qr-cli/renderer",
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "license": "MIT",
   "description": "Core QR renderer for console output",
   "type": "module",
   "main": "dist/index.js",

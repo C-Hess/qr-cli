@@ -1,7 +1,8 @@
 {
   "name": "qr-cli",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "license": "MIT",
   "description": "Monorepo for QR rendering packages",
   "packageManager": "npm@11.11.0",
   "engines": {

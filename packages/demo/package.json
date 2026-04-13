@@ -1,6 +1,7 @@
 {
   "name": "@qr-cli/demo",
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "license": "MIT",
   "private": true,
   "description": "Runnable Ink demo for qr-cli",
   "type": "module",
