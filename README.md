@@ -13,8 +13,25 @@ TypeScript npm workspace for console QR rendering.
 ```bash
 npm install
 npm run build
+npx qrcl "https://example.com"
 ```
+
+## CLI options
+
+- `--margin <n>`
+- `--invert`
+- `--ec <L|M|Q|H>`
+- `--qr-version <n|auto>`
+- `--mode <numeric|alphanumeric|byte|kanji>`
+- `--color <none|high-contrast>`
+- `--output <halfblocks>`
+- `--no-newline`
+- `--help`
+- `--version`
+
+CLI input can come from a positional argument or stdin.
 
 ## Notes
 
-QR generation logic is intentionally not implemented yet. This repo currently provides project and API scaffolding only.
+Core rendering uses UTF-8 halfblocks for terminal-friendly output.
+Use `--color high-contrast` for black-on-white rendering in terminals.

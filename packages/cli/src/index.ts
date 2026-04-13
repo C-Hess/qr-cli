@@ -1,27 +1,268 @@
-import { renderQrToString } from "@qrcl/core";
+import {
+  renderQrToAnsiString,
+  type ColorScheme,
+  type EncodingMode,
+  type ErrorCorrectionLevel,
+  type RenderQrOptions
+} from "@qrcl/core";
 
 export interface CliRunOptions {
-  stderr?: Pick<typeof console, "error">;
-  stdout?: Pick<typeof console, "log">;
+  stderr?: {
+    error?: (message: string) => void;
+    write?: (message: string) => void;
+  };
+  stdout?: {
+    log?: (message: string) => void;
+    write?: (message: string) => void;
+  };
+  readStdin?: () => Promise<string>;
+  isStdinTTY?: boolean;
 }
 
-export function runQrCli(argv: string[], options: CliRunOptions = {}): number {
-  const stdout = options.stdout ?? console;
-  const stderr = options.stderr ?? console;
-  const input = argv.join(" ").trim();
+interface ParsedArgs {
+  input: string;
+  renderOptions: RenderQrOptions;
+  noNewline: boolean;
+  showHelp: boolean;
+  showVersion: boolean;
+}
+
+const CLI_VERSION = "0.1.0";
+
+function writeOut(stdout: NonNullable<CliRunOptions["stdout"]>, message: string): void {
+  if (stdout.write) {
+    stdout.write(message);
+    return;
+  }
+  if (stdout.log) {
+    stdout.log(message.replace(/\n$/, ""));
+  }
+}
+
+function writeErr(stderr: NonNullable<CliRunOptions["stderr"]>, message: string): void {
+  if (stderr.write) {
+    stderr.write(message);
+    return;
+  }
+  if (stderr.error) {
+    stderr.error(message.replace(/\n$/, ""));
+  }
+}
+
+function usage(): string {
+  return [
+    "Usage: qrcl [options] <text-to-encode>",
+    "",
+    "Options:",
+    "  --margin <n>           Quiet-zone width in modules (default: 2)",
+    "  --invert               Invert light/dark modules",
+    "  --ec <L|M|Q|H>         Error correction level (default: M)",
+    "  --qr-version <n|auto>  QR version (0/auto means automatic)",
+    "  --mode <mode>          Encoding mode: numeric|alphanumeric|byte|kanji",
+    "  --color <mode>         Color mode: none|high-contrast",
+    "  --output <mode>        Output mode (currently: halfblocks)",
+    "  --no-newline           Do not print trailing newline",
+    "  --help                 Show help",
+    "  --version              Show CLI version",
+    "",
+    "Input can also come from stdin when no positional text is provided."
+  ].join("\n");
+}
+
+function parseArgs(argv: string[]): ParsedArgs {
+  const renderOptions: RenderQrOptions = {};
+  const textParts: string[] = [];
+  let noNewline = false;
+  let showHelp = false;
+  let showVersion = false;
+
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (!arg) {
+      continue;
+    }
+
+    if (arg === "--help" || arg === "-h") {
+      showHelp = true;
+      continue;
+    }
+    if (arg === "--version" || arg === "-v") {
+      showVersion = true;
+      continue;
+    }
+    if (arg === "--invert") {
+      renderOptions.invert = true;
+      continue;
+    }
+    if (arg === "--no-newline") {
+      noNewline = true;
+      continue;
+    }
+
+    const nextArg = argv[i + 1];
+    if (arg === "--margin") {
+      if (!nextArg) {
+        throw new Error("Missing value for --margin.");
+      }
+      i += 1;
+      const margin = Number.parseInt(nextArg, 10);
+      if (!Number.isInteger(margin) || margin < 0) {
+        throw new Error("--margin must be a non-negative integer.");
+      }
+      renderOptions.margin = margin;
+      continue;
+    }
+
+    if (arg === "--ec") {
+      if (!nextArg) {
+        throw new Error("Missing value for --ec.");
+      }
+      i += 1;
+      const level = nextArg.toUpperCase() as ErrorCorrectionLevel;
+      const validLevels: ErrorCorrectionLevel[] = ["L", "M", "Q", "H"];
+      if (!validLevels.includes(level)) {
+        throw new Error("--ec must be one of L, M, Q, H.");
+      }
+      renderOptions.errorCorrectionLevel = level;
+      continue;
+    }
+
+    if (arg === "--qr-version") {
+      if (!nextArg) {
+        throw new Error("Missing value for --qr-version.");
+      }
+      i += 1;
+      if (nextArg === "auto" || nextArg === "0") {
+        renderOptions.qrVersion = 0;
+        continue;
+      }
+      const version = Number.parseInt(nextArg, 10);
+      if (!Number.isInteger(version) || version < 1 || version > 40) {
+        throw new Error("--qr-version must be auto or an integer in range 1..40.");
+      }
+      renderOptions.qrVersion = version;
+      continue;
+    }
+
+    if (arg === "--mode") {
+      if (!nextArg) {
+        throw new Error("Missing value for --mode.");
+      }
+      i += 1;
+      const normalized = nextArg.toLowerCase();
+      const modeMap: Record<string, EncodingMode> = {
+        numeric: "Numeric",
+        alphanumeric: "Alphanumeric",
+        byte: "Byte",
+        kanji: "Kanji"
+      };
+      const mode = modeMap[normalized];
+      if (!mode) {
+        throw new Error("--mode must be one of numeric, alphanumeric, byte, kanji.");
+      }
+      renderOptions.encodingMode = mode;
+      continue;
+    }
+
+    if (arg === "--output") {
+      if (!nextArg) {
+        throw new Error("Missing value for --output.");
+      }
+      i += 1;
+      if (nextArg !== "halfblocks") {
+        throw new Error("--output currently only supports halfblocks.");
+      }
+      renderOptions.outputMode = "halfblocks";
+      continue;
+    }
+
+    if (arg === "--color") {
+      if (!nextArg) {
+        throw new Error("Missing value for --color.");
+      }
+      i += 1;
+      const color = nextArg.toLowerCase() as ColorScheme;
+      if (color !== "none" && color !== "high-contrast") {
+        throw new Error("--color must be one of none, high-contrast.");
+      }
+      renderOptions.colorScheme = color;
+      continue;
+    }
+
+    if (arg.startsWith("-")) {
+      throw new Error(`Unknown option: ${arg}`);
+    }
+
+    textParts.push(arg);
+  }
+
+  return {
+    input: textParts.join(" ").trim(),
+    renderOptions,
+    noNewline,
+    showHelp,
+    showVersion
+  };
+}
+
+async function readAllStdin(): Promise<string> {
+  const chunks: string[] = [];
+  process.stdin.setEncoding("utf8");
+  for await (const chunk of process.stdin) {
+    chunks.push(typeof chunk === "string" ? chunk : String(chunk));
+  }
+  return chunks.join("");
+}
+
+export async function runQrCli(argv: string[], options: CliRunOptions = {}): Promise<number> {
+  const stdout = options.stdout ?? process.stdout;
+  const stderr = options.stderr ?? process.stderr;
+
+  let parsed: ParsedArgs;
+  try {
+    parsed = parseArgs(argv);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    writeErr(stderr, `qrcl: ${message}\n`);
+    writeErr(stderr, "Run 'qrcl --help' for usage.\n");
+    return 1;
+  }
+
+  if (parsed.showHelp) {
+    writeOut(stdout, `${usage()}\n`);
+    return 0;
+  }
+
+  if (parsed.showVersion) {
+    writeOut(stdout, `qrcl ${CLI_VERSION}\n`);
+    return 0;
+  }
+
+  let input = parsed.input;
+  if (!input) {
+    const isStdinTTY = options.isStdinTTY ?? process.stdin.isTTY ?? false;
+    if (!isStdinTTY) {
+      const read = options.readStdin ?? readAllStdin;
+      input = (await read()).trim();
+    }
+  }
 
   if (!input) {
-    stderr.error("Usage: qrcl <text-to-encode>");
+    writeErr(stderr, "Usage: qrcl [options] <text-to-encode>\n");
     return 1;
   }
 
   try {
-    const output = renderQrToString(input);
-    stdout.log(output);
+    const coloredOutput = renderQrToAnsiString(input, parsed.renderOptions);
+    if (parsed.noNewline) {
+      writeOut(stdout, coloredOutput);
+    } else {
+      writeOut(stdout, `${coloredOutput}\n`);
+    }
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    stderr.error(`qrcl: ${message}`);
+    writeErr(stderr, `qrcl: ${message}\n`);
     return 1;
   }
 }
