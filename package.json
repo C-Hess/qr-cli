@@ -1,9 +1,17 @@
 {
   "name": "qr-cli",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.3",
   "license": "MIT",
   "description": "Monorepo for QR rendering packages",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/C-Hess/qr-cli"
+  },
+  "homepage": "https://github.com/C-Hess/qr-cli",
+  "bugs": {
+    "url": "https://github.com/C-Hess/qr-cli/issues"
+  },
   "packageManager": "npm@11.11.0",
   "engines": {
     "node": ">=18",

@@ -1,12 +1,6 @@
 # qr-cli
 
-Terminal QR codes with an Ink-first developer experience.
-
-Drop in a ready-to-use `QrCode` component for Ink apps, or use the CLI for quick terminal output.
-
-[![npm: @qr-cli/cli](https://img.shields.io/npm/v/%40qr-cli%2Fcli?label=%40qr-cli%2Fcli)](https://www.npmjs.com/package/@qr-cli/cli)
-[![npm: @qr-cli/ink](https://img.shields.io/npm/v/%40qr-cli%2Fink?label=%40qr-cli%2Fink)](https://www.npmjs.com/package/@qr-cli/ink)
-[![npm: @qr-cli/renderer](https://img.shields.io/npm/v/%40qr-cli%2Frenderer?label=%40qr-cli%2Frenderer)](https://www.npmjs.com/package/@qr-cli/renderer)
+Terminal QR codes, but with style.
 
 <p align="center">
   <img src="./assets/readme-media/terminal-example.webp" alt="qr-cli terminal example" width="900" />
